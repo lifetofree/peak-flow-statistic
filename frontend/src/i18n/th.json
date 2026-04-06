@@ -1,0 +1,104 @@
+{
+  "app": {
+    "title": "PeakFlowStatX",
+    "subtitle": "ระบบติดตามค่าแรงเป่าลม"
+  },
+  "nav": {
+    "dashboard": "แดชบอร์ด",
+    "newEntry": "เพิ่มข้อมูล",
+    "history": "ประวัติ",
+    "admin": "แอดมิน",
+    "login": "เข้าสู่ระบบ",
+    "logout": "ออกจากระบบ"
+  },
+  "user": {
+    "dashboard": "แดชบอร์ดผู้ใช้",
+    "addEntry": "เพิ่มข้อมูลใหม่",
+    "entryHistory": "ประวัติข้อมูล"
+  },
+  "entry": {
+    "date": "วันที่",
+    "peakFlow": "ค่าแรงเป่าลม",
+    "reading": "ครั้งที่ {{number}}",
+    "spO2": "ระดับออกซิเจนในเลือด",
+    "medicationTiming": "การรับประทานยา",
+    "before": "ก่อนรับประทานยา",
+    "after": "หลังรับประทานยา",
+    "period": "ช่วงเวลา",
+    "morning": "เช้า",
+    "evening": "เย็น",
+    "note": "บันทึก",
+    "submit": "บันทึกข้อมูล",
+    "noEntries": "ยังไม่มีข้อมูล",
+    "showMore": "ดูเพิ่มเติม",
+    "showLess": "ซ่อน",
+    "previewNote": "ดูตัวอย่าง",
+    "editNote": "แก้ไข",
+    "notePlaceholder": "เขียนบันทึก... (รองรับ Markdown)",
+    "noNote": "ไม่มีบันทึก",
+    "lastEntry": "บันทึกล่าสุด",
+    "close": "ปิด"
+  },
+  "zone": {
+    "green": "ปกติ",
+    "yellow": "ระวัง",
+    "red": "อันตราย",
+    "noPersonalBest": "ยังไม่ได้ตั้งค่า Personal Best กรุณาติดต่อแพทย์"
+  },
+  "admin": {
+    "title": "แผงควบคุมแอดมิน",
+    "users": "ผู้ใช้",
+    "entries": "ข้อมูล",
+    "auditLog": "ประวัติการแก้ไข",
+    "search": "ค้นหา...",
+    "createUser": "สร้างผู้ใช้ใหม่",
+    "editUser": "แก้ไขผู้ใช้",
+    "deleteUser": "ลบผู้ใช้",
+    "rotateToken": "สร้างลิงก์ใหม่",
+    "export": "ส่งออก CSV",
+    "personalBest": "ค่า Personal Best",
+    "adminNote": "บันทึกของแอดมิน",
+    "firstName": "ชื่อ",
+    "lastName": "นามสกุล",
+    "nickname": "ชื่อเล่น",
+    "copyLink": "คัดลอกลิงก์",
+    "linkCopied": "คัดลอกแล้ว!",
+    "shareLink": "ลิงก์สำหรับผู้ใช้",
+    "shareVia": "ส่งผ่านแอป",
+    "shareLinkHint": "แสกน QR หรือคัดลอกลิงก์เพื่อส่งให้ผู้ใช้",
+    "clicks": "ครั้งที่เปิด",
+    "noData": "ไม่มีข้อมูล",
+    "editEntry": "แก้ไขข้อมูล"
+  },
+  "auth": {
+    "password": "รหัสผ่าน",
+    "loginButton": "เข้าสู่ระบบ",
+    "loginError": "รหัสผ่านไม่ถูกต้อง"
+  },
+  "common": {
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข้อผิดพลาด",
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "confirm": "ยืนยัน",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "back": "กลับ",
+    "notFound": "ไม่พบหน้าที่ต้องการ",
+    "invalidToken": "ลิงก์ไม่ถูกต้องหรือหมดอายุ"
+  },
+  "chart": {
+    "peakFlowTrend": "แนวโน้มค่าแรงเป่าลม",
+    "spO2Trend": "แนวโน้มระดับออกซิเจน",
+    "days7": "7 วัน",
+    "days30": "30 วัน",
+    "days90": "90 วัน",
+    "all": "ทั้งหมด"
+  },
+  "validation": {
+    "peakFlowRange": "ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min",
+    "spO2Range": "ค่า SpO2 ต้องอยู่ระหว่าง 70-100%",
+    "futureDate": "ไม่สามารถเลือกวันที่ในอนาคต",
+    "required": "กรุณากรอกข้อมูล"
+  }
+}
