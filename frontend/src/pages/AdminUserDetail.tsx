@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import {
   ChevronLeft,
   Edit2,
@@ -360,7 +361,7 @@ export default function AdminUserDetail() {
         ) : (
           <div className="prose prose-sm max-w-none bg-gray-50 p-4 rounded-xl border border-dashed">
             {user.adminNote ? (
-              <ReactMarkdown>{user.adminNote}</ReactMarkdown>
+              <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{user.adminNote}</ReactMarkdown>
             ) : (
               <p className="text-gray-400 italic">{t('common.noData')}</p>
             )}
@@ -570,7 +571,7 @@ export default function AdminUserDetail() {
                 {showNotePreview ? (
                   <div className="border rounded-lg px-3 py-2 min-h-[60px] bg-gray-50 prose prose-sm max-w-none">
                     {entryForm.note ? (
-                      <ReactMarkdown>{entryForm.note}</ReactMarkdown>
+                      <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{entryForm.note}</ReactMarkdown>
                     ) : (
                       <p className="text-gray-400 italic">{t('entry.noNote')}</p>
                     )}
@@ -618,7 +619,7 @@ export default function AdminUserDetail() {
                 </button>
               </div>
               <div className="p-4 prose prose-sm max-w-none">
-                <ReactMarkdown>{viewingNote.note}</ReactMarkdown>
+                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{viewingNote.note}</ReactMarkdown>
               </div>
               <div className="p-4 border-t">
                 <button

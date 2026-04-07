@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import { Search, Plus, User as UserIcon, Activity, ClipboardList, Copy, Check, Eye, Edit2 } from 'lucide-react';
 import { fetchUsers, createUser } from '../api/admin';
 import { formatThaiDate } from '../utils/date';
@@ -142,7 +143,7 @@ export default function AdminDashboard() {
             {showAdminNotePreview ? (
               <div className="border rounded-lg px-3 py-2 min-h-[72px] bg-gray-50 prose prose-sm max-w-none">
                 {form.adminNote ? (
-                  <ReactMarkdown>{form.adminNote}</ReactMarkdown>
+                  <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{form.adminNote}</ReactMarkdown>
                 ) : (
                   <p className="text-gray-400 italic">{t('entry.noNote')}</p>
                 )}
