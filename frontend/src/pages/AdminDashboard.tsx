@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize from 'rehype-sanitize';
 import { Search, Plus, User as UserIcon, Activity, ClipboardList, Copy, Check, Eye, Edit2 } from 'lucide-react';
 import { fetchUsers, createUser } from '../api/admin';
-import { formatThaiDate } from '../utils/date';
+import { formatThaiDateTime } from '../utils/date';
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [showAdminNotePreview, setShowAdminNotePreview] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', nickname: '', personalBest: '', adminNote: '' });
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const handleCopyLink = (shortCode: string, userId: string) => {
     const url = `${window.location.origin}/s/${shortCode}`;
@@ -212,7 +213,11 @@ export default function AdminDashboard() {
                 </tr>
               ) : (
                 usersQuery.data?.users.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                  <tr 
+                    key={user._id} 
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/admin/users/${user._id}`)}
+                  >
                     <td className="px-4 py-3">
                       <Link
                         to={`/admin/users/${user._id}`}
@@ -235,13 +240,13 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3 hidden md:table-cell">
                       {user.lastEntryDate ? (
                         <span className="text-xs text-gray-600">
-                          {formatThaiDate(user.lastEntryDate)}
+                          {formatThaiDateTime(user.lastEntryDate)}
                         </span>
                       ) : (
                         <span className="text-gray-400 text-xs">-</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleCopyLink(user.shortCode, user._id)}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${

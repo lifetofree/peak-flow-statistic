@@ -22,7 +22,6 @@ import {
 import ShareLinkCard from '../components/ShareLinkCard';
 import { fetchUser, updateUser, updateNote, fetchAdminEntries, deleteUser, updateEntry } from '../api/admin';
 import { formatThaiDate } from '../utils/date';
-import { getBestReading } from '../utils/zone';
 
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
@@ -193,6 +192,30 @@ export default function AdminUserDetail() {
       </div>
     );
   }
+
+  // Group entries by date, then by period, keeping latest entry per period
+  const groupedEntries = entriesQuery.data?.entries.reduce((acc, entry) => {
+    const dateKey = entry.date.split('T')[0];
+    const periodKey = entry.period;
+    const key = `${dateKey}-${periodKey}`;
+    
+    if (!acc[key] || new Date(entry.createdAt) > new Date(acc[key].createdAt)) {
+      acc[key] = entry;
+    }
+    return acc;
+  }, {} as Record<string, any>);
+
+  // Group by date for display
+  const entriesByDate = Object.values(groupedEntries || {}).reduce((acc, entry) => {
+    const dateKey = entry.date.split('T')[0];
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(entry);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  // Sort dates and assign sequence numbers
+  const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  let seqNum = 1;
 
   const totalPages = entriesQuery.data
     ? Math.ceil(entriesQuery.data.total / entriesQuery.data.pageSize)
@@ -378,83 +401,143 @@ export default function AdminUserDetail() {
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
-        ) : !entriesQuery.data || entriesQuery.data.entries.length === 0 ? (
+        ) : !entriesQuery.data || Object.keys(entriesByDate).length === 0 ? (
           <div className="text-center py-8 text-gray-500 italic border rounded-xl border-dashed">
             {t('entry.noEntries')}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto border rounded-xl">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.date')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.period')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.peakFlow')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.spO2')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.medicationTiming')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.note')}</th>
+                  <th className="px-3 py-3 font-semibold text-gray-600 w-8">#</th>
+                  <th className="text-left px-3 py-3 font-semibold text-gray-600">Date</th>
+                  <th className="text-center px-3 py-3 font-semibold text-gray-600" colSpan={4}>
+                    <div className="flex items-center justify-center gap-1">
+                      <Sun className="text-orange-500" size={14} />
+                      Morning
+                    </div>
+                  </th>
+                  <th className="text-center px-3 py-3 font-semibold text-gray-600" colSpan={4}>
+                    <div className="flex items-center justify-center gap-1">
+                      <Moon className="text-indigo-600" size={14} />
+                      Evening
+                    </div>
+                  </th>
                   <th className="px-3 py-3"></th>
+                </tr>
+                <tr className="bg-gray-50/50 text-xs text-gray-500">
+                  <th></th>
+                  <th></th>
+                  <th className="text-left px-2 py-1">Peak Flow</th>
+                  <th className="text-left px-2 py-1">SpO₂</th>
+                  <th className="text-left px-2 py-1">Med</th>
+                  <th className="text-left px-2 py-1">Note</th>
+                  <th className="text-left px-2 py-1">Peak Flow</th>
+                  <th className="text-left px-2 py-1">SpO₂</th>
+                  <th className="text-left px-2 py-1">Med</th>
+                  <th className="text-left px-2 py-1">Note</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {entriesQuery.data.entries.map((entry) => (
-                  <tr key={entry._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-3 py-3 whitespace-nowrap">{formatThaiDate(entry.date)}</td>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {entry.period === 'morning' ? (
-                          <Sun className="text-orange-500" size={14} />
-                        ) : (
-                          <Moon className="text-indigo-600" size={14} />
-                        )}
-                        <span className="text-xs font-medium uppercase tracking-tight text-gray-500">
-                          {t(`entry.${entry.period}`)}
+                {sortedDates.map((dateKey) => {
+                  const dateEntries = entriesByDate[dateKey];
+                  const morningEntry = dateEntries.find((e: any) => e.period === 'morning');
+                  const eveningEntry = dateEntries.find((e: any) => e.period === 'evening');
+                  const currentSeq = seqNum++;
+                  
+                  return (
+                    <tr key={dateKey} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-3 py-3">
+                        <span className="bg-blue-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                          {currentSeq}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="font-medium">{getBestReading(entry.peakFlowReadings)}</span> L/min
-                      <span className="text-xs text-gray-400 ml-1">
-                        ({entry.peakFlowReadings.join('/')})
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                        entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {entry.spO2}%
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="text-gray-600">{t(`entry.${entry.medicationTiming}`)}</span>
-                    </td>
-                    <td className="px-3 py-3">
-                      {entry.note ? (
-                        entry.note.length > 30 ? (
-                          <button
-                            onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
-                            className="text-xs text-blue-600 hover:underline text-left"
-                          >
-                            {entry.note.slice(0, 30)}...
-                          </button>
-                        ) : (
-                          <span className="text-xs text-gray-600">{entry.note}</span>
-                        )
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap font-medium text-gray-700">
+                        {formatThaiDate(dateEntries[0].date)}
+                      </td>
+                      {morningEntry ? (
+                        <>
+                          <td className="px-2 py-3 text-xs">
+                            {morningEntry.peakFlowReadings.join(' / ')} <span className="text-gray-400">L/min</span>
+                          </td>
+                          <td className="px-2 py-3">
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                              morningEntry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {morningEntry.spO2}%
+                            </span>
+                          </td>
+                          <td className="px-2 py-3 text-xs text-gray-500">{t(`entry.${morningEntry.medicationTiming}`)}</td>
+                          <td className="px-2 py-3">
+                            {morningEntry.note ? (
+                              morningEntry.note.length > 15 ? (
+                                <button
+                                  onClick={() => setViewingNote({ note: morningEntry.note, date: formatThaiDate(morningEntry.date) })}
+                                  className="text-xs text-blue-600 hover:underline"
+                                >
+                                  {morningEntry.note.slice(0, 15)}...
+                                </button>
+                              ) : (
+                                <span className="text-xs text-gray-600">{morningEntry.note}</span>
+                              )
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                        </>
                       ) : (
-                        <span className="text-gray-400 text-xs">-</span>
+                        <td colSpan={4} className="px-2 py-3 text-center text-gray-300 text-xs italic">No record</td>
                       )}
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      <button
-                        onClick={() => startEditingEntry(entry)}
-                        className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                        title={t('common.edit')}
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      {eveningEntry ? (
+                        <>
+                          <td className="px-2 py-3 text-xs">
+                            {eveningEntry.peakFlowReadings.join(' / ')} <span className="text-gray-400">L/min</span>
+                          </td>
+                          <td className="px-2 py-3">
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                              eveningEntry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {eveningEntry.spO2}%
+                            </span>
+                          </td>
+                          <td className="px-2 py-3 text-xs text-gray-500">{t(`entry.${eveningEntry.medicationTiming}`)}</td>
+                          <td className="px-2 py-3">
+                            {eveningEntry.note ? (
+                              eveningEntry.note.length > 15 ? (
+                                <button
+                                  onClick={() => setViewingNote({ note: eveningEntry.note, date: formatThaiDate(eveningEntry.date) })}
+                                  className="text-xs text-blue-600 hover:underline"
+                                >
+                                  {eveningEntry.note.slice(0, 15)}...
+                                </button>
+                              ) : (
+                                <span className="text-xs text-gray-600">{eveningEntry.note}</span>
+                              )
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                        </>
+                      ) : (
+                        <td colSpan={4} className="px-2 py-3 text-center text-gray-300 text-xs italic">No record</td>
+                      )}
+                      <td className="px-3 py-3 text-right">
+                        <button
+                          onClick={() => {
+                            const entryToEdit = morningEntry || eveningEntry;
+                            if (entryToEdit) startEditingEntry(entryToEdit);
+                          }}
+                          className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
+                          title={t('common.edit')}
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

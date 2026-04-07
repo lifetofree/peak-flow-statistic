@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sun, Moon, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatThaiDate } from '../utils/date';
-import { getBestReading } from '../utils/zone';
 import type { EntryWithZone } from '../types';
 
 interface EntryCardProps {
@@ -14,7 +13,6 @@ const NOTE_PREVIEW_LENGTH = 60;
 export default function EntryCard({ data }: EntryCardProps) {
   const { t } = useTranslation();
   const { entry } = data;
-  const best = getBestReading(entry.peakFlowReadings);
   const [showFullNote, setShowFullNote] = useState(false);
 
   const notePreview = entry.note.length > NOTE_PREVIEW_LENGTH
@@ -41,11 +39,11 @@ export default function EntryCard({ data }: EntryCardProps) {
       <div className="grid grid-cols-2 gap-2 text-sm">
         <div>
           <span className="text-gray-500">{t('entry.peakFlow')}:</span>{' '}
-          <span className="font-semibold">{best} L/min</span>
+          <span>{entry.peakFlowReadings.join(' / ')} L/min</span>
         </div>
         <div>
           <span className="text-gray-500">{t('entry.spO2')}:</span>{' '}
-          <span className={`font-semibold ${entry.spO2 < 95 ? 'text-red-600' : ''}`}>
+          <span className={entry.spO2 < 95 ? 'text-red-600' : ''}>
             {entry.spO2}%
           </span>
         </div>
@@ -53,9 +51,6 @@ export default function EntryCard({ data }: EntryCardProps) {
           <span className="text-gray-500">{t('entry.medicationTiming')}:</span>{' '}
           <span>{t(`entry.${entry.medicationTiming}`)}</span>
         </div>
-      </div>
-      <div className="text-xs text-gray-400 mt-2">
-        {entry.peakFlowReadings.join(' / ')} L/min
       </div>
       {entry.note && (
         <div className="mt-2 border-t pt-2">

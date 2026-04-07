@@ -1,14 +1,18 @@
-# PeakFlowStatX — Issues
+# PeakFlowStat — Issues
 
-<<<<<<< Updated upstream
-All previously tracked issues have been resolved as of 2026-04-07 (v11).
-=======
 ## Open Issues (Code Review — 2026-04-07)
 
 ### 1. [CRITICAL] No Authentication on Admin Endpoints
 - **File:** `worker/src/index.ts`, `worker/src/routes/admin.ts`
 - **Problem:** All `/api/admin/*` endpoints are publicly accessible with no authentication or authorization. Anyone can create/delete users, view entries, and modify data.
 - **Recommendation:** Add middleware to verify admin credentials (e.g., Bearer token, basic auth, or Cloudflare Access) before processing admin routes.
+
+### 9. [MEDIUM] Hardcoded admin_id in Audit Logs
+- **File:** `worker/src/routes/admin.ts` (all audit log inserts)
+- **Problem:** Every audit log entry uses `admin_id: 'admin'` as a hardcoded string. When authentication is added, this must be replaced with the actual admin user's identity.
+- **Recommendation:** Extract admin identity from the auth context/middleware once authentication is implemented.
+
+## Resolved Issues
 
 ### ~~2. [MEDIUM] SQL Column Name Injection in database.ts~~ — RESOLVED
 - **Fixed in:** v26 (2026-04-07)
@@ -38,11 +42,6 @@ All previously tracked issues have been resolved as of 2026-04-07 (v11).
 - **Fixed in:** v30 (2026-04-07)
 - **Fix:** Added empty array guard to `getBestReading()` in `zone.ts`. Returns `null` instead of `-Infinity` when readings array is empty. Return type changed to `number | null`.
 
-### 9. [MEDIUM] Hardcoded admin_id in Audit Logs
-- **File:** `worker/src/routes/admin.ts` (all audit log inserts)
-- **Problem:** Every audit log entry uses `admin_id: 'admin'` as a hardcoded string. When authentication is added, this must be replaced with the actual admin user's identity.
-- **Recommendation:** Extract admin identity from the auth context/middleware once authentication is implemented.
-
 ### ~~10. [LOW-MEDIUM] Soft-Delete Inconsistency — Entries Not Filtered~~ — RESOLVED
 - **Fixed in:** v30 (2026-04-07)
 - **Fix:** Admin entries endpoint (`GET /admin/entries`) now uses a subquery `WHERE user_id IN (SELECT id FROM users WHERE deleted_at IS NULL)` to exclude entries belonging to soft-deleted users.
@@ -62,34 +61,31 @@ All previously tracked issues have been resolved as of 2026-04-07 (v11).
 ### ~~14. [LOW] Overly Permissive CORS Fallback~~ — RESOLVED
 - **Fixed in:** v31 (2026-04-07)
 - **Fix:** `CORS_ORIGIN` is now required — middleware throws `Error` at runtime if the env var is missing or empty. No fallback to `*`.
->>>>>>> Stashed changes
 
 ## Resolved Changes
 
 | Date | Change |
 |------|--------|
 | 2026-04-07 | v10: Fixed `period` field migration — optional with default `'morning'`. Added `period` to CSV export and audit diff. CSV export sends Authorization header. Created `seed-john.ts`. |
-| 2026-04-07 | v11: Documented duplicate validation constants and zone calculation with ⚠️ sync comments in both files. |
+| 2026-04-07 | v11: Documented duplicate validation constants and zone calculation with sync comments in both files. |
 | 2026-04-07 | v12: Replaced Math.random() shortCode generation with `crypto.randomBytes()` — cryptographically secure 8-char hex. |
 | 2026-04-07 | v13: Removed rotateToken UI button and clickCount display from admin user detail page. |
 | 2026-04-07 | v14: Removed native share button from ShareLinkCard. EntryCard notes now show 60-char preview with show more/less toggle. Admin can edit entry records. |
 | 2026-04-07 | v15: Added cancel button to admin create user form. |
-<<<<<<< Updated upstream
-=======
 | 2026-04-07 | v22: Fixed short link 404 — patients visiting `/s/:code` saw a blank "Not Found" page. Root cause 1: admin-copied links pointed to `www.peakflowstat.allergyclinic.cc/s/:code` but Cloudflare Pages had no handler for `/s/*`. Fix: added `frontend/public/_redirects` to forward `/s/*` → worker. Root cause 2: worker's redirect used relative URL `/u/:token` which resolved to the API domain, not the frontend. Fix: changed to absolute URL using `FRONTEND_URL` env var. |
-| 2026-04-07 | v25: Fixed "e is not iterable" TypeError on admin user detail page. `GET /api/admin/entries` returned `{ entry: {...}, zone }` per item but `AdminUserDetail` accessed `entry.peakFlowReadings` directly (not `entry.entry.peakFlowReadings`). Fixed by flattening the response shape to include `peakFlowReadings` and `zone` at the top level. |
-| 2026-04-07 | v24: Fixed API 404 on admin/user pages — `VITE_API_URL` was missing `/api` suffix, causing frontend to call `api.peakflowstat.allergyclinic.cc/admin/users` instead of `.../api/admin/users`. Fixed Cloudflare Pages CI conflicts: removed root `wrangler.toml` (triggered wrangler deploy) and `frontend/wrangler.toml` (triggered wrangler versions upload). Switched to direct CLI deployment. |
 | 2026-04-07 | v23: Fixed SSL cert error on `www.peakflowstat.allergyclinic.cc` — third-level subdomains not covered by Universal SSL. Fix: switched to `peakflowstat.allergyclinic.cc` (direct subdomain, covered by `*.allergyclinic.cc`). Fixed Cloudflare Pages build failure caused by `root = "frontend"` in `pages.toml` (double-applied path) and committed `tsconfig.tsbuildinfo` (stale CI cache). Frontend redeployed via GitLab CI/CD integration. |
-| 2026-04-07 | v30: Fixed getBestReading() returning -Infinity, soft-delete entry filtering, admin note Zod validation. |
-| 2026-04-07 | v29: Fixed CSV filename injection, added rehype-sanitize to all ReactMarkdown usages. |
-| 2026-04-07 | v28: Fixed N+1 query problem in admin users list using batch subquery. |
+| 2026-04-07 | v24: Fixed API 404 on admin/user pages — `VITE_API_URL` was missing `/api` suffix, causing frontend to call `api.peakflowstat.allergyclinic.cc/admin/users` instead of `.../api/admin/users`. Fixed Cloudflare Pages CI conflicts: removed root `wrangler.toml` (triggered wrangler deploy) and `frontend/wrangler.toml` (triggered wrangler versions upload). Switched to direct CLI deployment. |
+| 2026-04-07 | v25: Fixed "e is not iterable" TypeError on admin user detail page. `GET /api/admin/entries` returned `{ entry: {...}, zone }` per item but `AdminUserDetail` accessed `entry.peakFlowReadings` directly (not `entry.entry.peakFlowReadings`). Fixed by flattening the response shape to include `peakFlowReadings` and `zone` at the top level. |
+| 2026-04-07 | v26: Fixed SQL column name injection and LIKE clause injection in database.ts. |
 | 2026-04-07 | v27: Fixed date range filtering, fixed peakFlowReadings tuple vs array mismatch. |
+| 2026-04-07 | v28: Fixed N+1 query problem in admin users list using batch subquery. |
+| 2026-04-07 | v29: Fixed CSV filename injection, added rehype-sanitize to all ReactMarkdown usages. |
+| 2026-04-07 | v30: Fixed getBestReading() returning -Infinity, soft-delete entry filtering, admin note Zod validation. |
 | 2026-04-07 | v31: Added console.warn() to silent JSON.parse catch blocks; made CORS_ORIGIN env var required (no fallback to *). |
->>>>>>> Stashed changes
 
 ## Notes
 
 - Authentication was intentionally removed for simplicity (open-access design)
 - Zone calculations and validation constants are duplicated across frontend/backend by design (no shared package)
-- `seed-jonh.ts` (typo) should be manually deleted; use `seed-john.ts` instead
 - `rotate-token` API endpoint still exists but the UI button has been removed
+- Do NOT use `www.peakflowstat.allergyclinic.cc` — third-level subdomains are not covered by Cloudflare Universal SSL
