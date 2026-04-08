@@ -13,15 +13,21 @@ import {
   User as UserIcon,
   StickyNote,
   History,
-  Sun,
-  Moon,
   Link2,
+<<<<<<< Updated upstream
   Eye,
 } from 'lucide-react';
 import ShareLinkCard from '../components/ShareLinkCard';
 import { fetchUser, updateUser, updateNote, fetchAdminEntries, deleteUser, updateEntry } from '../api/admin';
 import { formatThaiDate } from '../utils/date';
 import { getBestReading } from '../utils/zone';
+=======
+  Calendar,
+} from 'lucide-react';
+import ShareLinkCard from '../components/ShareLinkCard';
+import PeakFlowTable from '../components/PeakFlowTable';
+import { fetchUser, updateUser, updateNote, fetchAdminEntries, deleteUser } from '../api/admin';
+>>>>>>> Stashed changes
 
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +39,7 @@ export default function AdminUserDetail() {
   const [editingNote, setEditingNote] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', nickname: '', personalBest: '' });
   const [noteText, setNoteText] = useState('');
+<<<<<<< Updated upstream
   const [entryPage, setEntryPage] = useState(1);
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [showNotePreview, setShowNotePreview] = useState(false);
@@ -45,6 +52,19 @@ export default function AdminUserDetail() {
     period: 'morning' as 'morning' | 'evening',
     note: '',
   });
+=======
+const today = new Date().toISOString().split('T')[0];
+
+const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: string; to?: string }>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+  if (value && value > today) {
+    alert(t('common.validationError', { field: 'Cannot select a date later than today.' }));
+    return;
+  }
+  setter(prev => ({ ...prev, from: value || undefined, to: value || undefined }));
+};
+
+>>>>>>> Stashed changes
   const userQuery = useQuery({
     queryKey: ['adminUser', id],
     queryFn: () => fetchUser(id!),
@@ -52,8 +72,8 @@ export default function AdminUserDetail() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['adminEntries', id, entryPage],
-    queryFn: () => fetchAdminEntries(entryPage, id),
+    queryKey: ['adminEntries', id, dateFilter],
+    queryFn: () => fetchAdminEntries(1, id, true, dateFilter.from, dateFilter.to),
     enabled: !!id,
   });
 
@@ -193,12 +213,16 @@ export default function AdminUserDetail() {
     );
   }
 
+<<<<<<< Updated upstream
   const totalPages = entriesQuery.data
     ? Math.ceil(entriesQuery.data.total / entriesQuery.data.pageSize)
     : 0;
+=======
+  const allEntries = entriesQuery.data?.entries ?? [];
+>>>>>>> Stashed changes
 
   return (
-    <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen p-4 max-w-full mx-auto space-y-6 overflow-x-hidden">
       <div className="flex items-center justify-between">
         <Link to="/admin" className="text-blue-600 hover:underline flex items-center gap-1">
           <ChevronLeft size={20} />
@@ -293,7 +317,7 @@ export default function AdminUserDetail() {
                 <Edit2 size={20} />
               </button>
             </div>
-            
+
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 onClick={handleExport}
@@ -323,8 +347,8 @@ export default function AdminUserDetail() {
             {t('admin.adminNote')}
           </h3>
           {!editingNote && (
-            <button 
-              onClick={startEditingNote} 
+            <button
+              onClick={startEditingNote}
               className="text-sm text-blue-600 hover:underline flex items-center gap-1"
             >
               <Edit2 size={14} />
@@ -369,19 +393,71 @@ export default function AdminUserDetail() {
       </div>
 
       <div className="bg-white rounded-xl p-6 shadow-sm border">
-        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-          <History size={20} className="text-purple-600" />
-          {t('admin.entries')}
-        </h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-lg flex items-center gap-2">
+            <History size={20} className="text-purple-600" />
+            {t('admin.entries')}
+          </h3>
+          <button
+            onClick={() => setShowDateFilter(!showDateFilter)}
+            className={`p-1.5 rounded-md transition-colors ${showDateFilter ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+            title="Filter by date"
+          >
+            <Calendar size={18} />
+          </button>
+        </div>
+        {showDateFilter && (
+          <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">{t('entry.from')}</label>
+                <input
+                  type="date"
+                  value={dateFilter.from || ''}
+                  onChange={(e) => setDateFilter({ ...dateFilter, from: e.target.value || undefined })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">{t('entry.to')}</label>
+                <input
+                  type="date"
+                  value={dateFilter.to || ''}
+                  onChange={(e) => setDateFilter({ ...dateFilter, to: e.target.value || undefined })}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setDateFilter({}); setShowDateFilter(false); }}
+                className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={() => setShowDateFilter(false)}
+                className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                {t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        )}
         {entriesQuery.isLoading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
+<<<<<<< Updated upstream
         ) : !entriesQuery.data || entriesQuery.data.entries.length === 0 ? (
+=======
+        ) : allEntries.length === 0 ? (
+>>>>>>> Stashed changes
           <div className="text-center py-8 text-gray-500 italic border rounded-xl border-dashed">
             {t('entry.noEntries')}
           </div>
         ) : (
+<<<<<<< Updated upstream
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b">
@@ -652,6 +728,9 @@ export default function AdminUserDetail() {
               <ChevronLeft size={20} className="rotate-180" />
             </button>
           </div>
+=======
+          <PeakFlowTable entries={allEntries} />
+>>>>>>> Stashed changes
         )}
       </div>
     </div>
