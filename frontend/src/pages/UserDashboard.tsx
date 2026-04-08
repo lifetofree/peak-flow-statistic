@@ -1,36 +1,16 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-<<<<<<< Updated upstream
-import { Activity, Plus, History, AlertCircle } from 'lucide-react';
+import { Activity, Plus, History, AlertCircle, LayoutGrid, LayoutList, Sun, Moon } from 'lucide-react';
 import { fetchUserProfile, fetchUserEntries } from '../api/user';
 import EntryCard from '../components/EntryCard';
-=======
-import { Activity, Plus, History, AlertCircle, LayoutGrid, LayoutList, ChevronLeft, Calendar } from 'lucide-react';
-import { fetchUserProfile, fetchUserEntries } from '../api/user';
-import EntryCard from '../components/EntryCard';
-import PeakFlowTable from '../components/PeakFlowTable';
->>>>>>> Stashed changes
+import { formatThaiDate } from '../utils/date';
 
 export default function UserDashboard() {
   const { token } = useParams<{ token: string }>();
   const { t } = useTranslation();
-<<<<<<< Updated upstream
-=======
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
-  const [cardPage, setCardPage] = useState(1);
-const today = new Date().toISOString().split('T')[0];
-
-const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: string; to?: string }>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
-  const value = e.target.value;
-  if (value && value > today) {
-    alert(t('common.validationError', { field: 'Cannot select a date later than today.' }));
-    return;
-  }
-  setter(prev => ({ ...prev, from: value || undefined, to: value || undefined }));
-};
-  const CARDS_PER_PAGE = 10;
->>>>>>> Stashed changes
 
   const profileQuery = useQuery({
     queryKey: ['userProfile', token],
@@ -39,8 +19,8 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['userEntries', token, 1, dateFilter],
-    queryFn: () => fetchUserEntries(token!, 1, true, dateFilter.from, dateFilter.to),
+    queryKey: ['userEntries', token, 1],
+    queryFn: () => fetchUserEntries(token!, 1),
     enabled: !!token,
   });
 
@@ -68,11 +48,7 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
   const entries = entriesQuery.data?.entries ?? [];
 
   return (
-<<<<<<< Updated upstream
-    <div className="min-h-screen bg-gray-50 p-4 max-w-lg mx-auto space-y-4 pb-24">
-=======
-    <div className={`min-h-screen bg-gray-50 p-4 ${viewMode === 'table' ? 'max-w-full mx-auto overflow-x-hidden' : 'max-w-lg mx-auto'} space-y-4 pb-24`}>
->>>>>>> Stashed changes
+    <div className={`min-h-screen bg-gray-50 p-4 ${viewMode === 'table' ? 'max-w-6xl mx-auto' : 'max-w-lg mx-auto'} space-y-4 pb-24`}>
       <div className="bg-white rounded-2xl p-5 shadow-sm border">
         <div className="flex items-center gap-3">
           <div className="bg-blue-100 p-3 rounded-full">
@@ -109,28 +85,7 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
             <History size={20} className="text-gray-400" />
             {t('user.entryHistory')}
           </h2>
-<<<<<<< Updated upstream
-          <Link
-            to={`/u/${token}/entries`}
-            className="text-blue-600 text-sm font-semibold hover:underline flex items-center gap-1"
-          >
-            {t('chart.all')}
-          </Link>
-        </div>
-        <div className="space-y-3">
-          {entries.slice(0, 5).map((e) => (
-            <EntryCard key={e.entry._id} data={e} />
-          ))}
-        </div>
-=======
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowDateFilter(!showDateFilter)}
-              className={`p-1.5 rounded-md transition-colors ${showDateFilter ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-              title="Filter by date"
-            >
-              <Calendar size={18} />
-            </button>
             <div className="flex bg-gray-100 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode('card')}
@@ -147,85 +102,134 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
                 <LayoutList size={18} />
               </button>
             </div>
+            <Link
+              to={`/u/${token}/entries`}
+              className="text-blue-600 text-sm font-semibold hover:underline flex items-center gap-1"
+            >
+              {t('chart.all')}
+            </Link>
           </div>
         </div>
 
-        {showDateFilter && (
-          <div className="bg-white rounded-xl p-4 shadow-sm border space-y-3">
-            <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">{t('chart.filterByDate') || 'กรองตามวันที่'}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.from') || 'จากวันที่'}</label>
-                <input
-                  type="date"
-                  value={dateFilter.from || ''}
-                  onChange={(e) => setDateFilter({ ...dateFilter, from: e.target.value || undefined })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.to') || 'ถึงวันที่'}</label>
-                <input
-                  type="date"
-                  value={dateFilter.to || ''}
-                  onChange={(e) => setDateFilter({ ...dateFilter, to: e.target.value || undefined })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setDateFilter({}); setShowDateFilter(false); }}
-                className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={() => setShowDateFilter(false)}
-                className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-              >
-                {t('common.confirm')}
-              </button>
-            </div>
+        {viewMode === 'card' ? (
+          <div className="space-y-3">
+            {entries.slice(0, 5).map((e) => (
+              <EntryCard key={e.entry._id} data={e} />
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto border rounded-xl bg-white">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="text-left px-3 py-3 font-semibold text-gray-600">Date</th>
+                  <th className="text-center px-3 py-3 font-semibold text-gray-600" colSpan={4}>
+                    <div className="flex items-center justify-center gap-1">
+                      <Sun className="text-orange-500" size={14} />
+                      Morning
+                    </div>
+                  </th>
+                  <th className="text-center px-3 py-3 font-semibold text-gray-600" colSpan={4}>
+                    <div className="flex items-center justify-center gap-1">
+                      <Moon className="text-indigo-600" size={14} />
+                      Evening
+                    </div>
+                  </th>
+                </tr>
+                <tr className="bg-gray-50/50 text-xs text-gray-500">
+                  <th></th>
+                  <th className="text-left px-2 py-1">Peak Flow</th>
+                  <th className="text-left px-2 py-1">SpO₂</th>
+                  <th className="text-left px-2 py-1">Med</th>
+                  <th className="text-left px-2 py-1">Note</th>
+                  <th className="text-left px-2 py-1">Peak Flow</th>
+                  <th className="text-left px-2 py-1">SpO₂</th>
+                  <th className="text-left px-2 py-1">Med</th>
+                  <th className="text-left px-2 py-1">Note</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {(() => {
+                  type GroupedEntry = { morning: any; evening: any };
+                  const grouped: Record<string, GroupedEntry> = {};
+                  for (const e of entries) {
+                    const dateKey = e.entry.date.split('T')[0] as string;
+                    let group: GroupedEntry | undefined = grouped[dateKey];
+                    if (!group) {
+                      group = { morning: null, evening: null };
+                      grouped[dateKey] = group;
+                    }
+                    if (e.entry.period === 'morning') group.morning = e;
+                    else group.evening = e;
+                  }
+
+                  const dateKeys = Object.keys(grouped).slice(0, 10);
+                  return dateKeys.map((dateKey: string) => {
+                    const dayGroup = grouped[dateKey]!;
+                    const { morning, evening } = dayGroup;
+                    const dateToShow = morning ? morning.entry.date : (evening ? evening.entry.date : dateKey);
+                    return (
+                    <tr key={dateKey} className="hover:bg-gray-50">
+                      <td className="px-3 py-3 whitespace-nowrap font-medium text-gray-700">
+                        {formatThaiDate(dateToShow)}
+                      </td>
+                      {morning !== null && morning !== undefined ? (
+                        <>
+                          <td className="px-2 py-3 text-xs">
+                            {morning.entry.peakFlowReadings.join(' / ')} <span className="text-gray-400">L/min</span>
+                          </td>
+                          <td className="px-2 py-3">
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                              morning.entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {morning.entry.spO2}%
+                            </span>
+                          </td>
+                          <td className="px-2 py-3 text-xs text-gray-500">{t(`entry.${morning.entry.medicationTiming}`)}</td>
+                          <td className="px-2 py-3">
+                            {morning.entry.note ? (
+                              <span className="text-xs text-gray-600 truncate max-w-[80px] block">{morning.entry.note}</span>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                        </>
+                      ) : (
+                        <td colSpan={4} className="px-2 py-3 text-center text-gray-300 text-xs italic">-</td>
+                      )}
+                      {evening !== null && evening !== undefined ? (
+                        <>
+                          <td className="px-2 py-3 text-xs">
+                            {evening.entry.peakFlowReadings.join(' / ')} <span className="text-gray-400">L/min</span>
+                          </td>
+                          <td className="px-2 py-3">
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                              evening.entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {evening.entry.spO2}%
+                            </span>
+                          </td>
+                          <td className="px-2 py-3 text-xs text-gray-500">{t(`entry.${evening.entry.medicationTiming}`)}</td>
+                          <td className="px-2 py-3">
+                            {evening.entry.note ? (
+                              <span className="text-xs text-gray-600 truncate max-w-[80px] block">{evening.entry.note}</span>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
+                        </>
+                      ) : (
+                        <td colSpan={4} className="px-2 py-3 text-center text-gray-300 text-xs italic">-</td>
+                      )}
+                    </tr>
+                    );
+                  });
+                  return null;
+                })()}
+              </tbody>
+            </table>
           </div>
         )}
-
-        {viewMode === 'card' ? (
-          <>
-            <div className="space-y-3">
-              {entries.slice((cardPage - 1) * CARDS_PER_PAGE, cardPage * CARDS_PER_PAGE).map((e) => (
-                <EntryCard key={e.entry._id} data={e} />
-              ))}
-            </div>
-            {entries.length > CARDS_PER_PAGE && (
-              <div className="flex justify-center items-center gap-4 mt-6">
-                <button
-                  onClick={() => setCardPage((p) => Math.max(1, p - 1))}
-                  disabled={cardPage === 1}
-                  className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                >
-                  <ChevronLeft size={20} />
-                </button>
-                <span className="text-sm font-medium text-gray-600">
-                  {cardPage} / {Math.ceil(entries.length / CARDS_PER_PAGE)}
-                </span>
-                <button
-                  onClick={() => setCardPage((p) => Math.min(Math.ceil(entries.length / CARDS_PER_PAGE), p + 1))}
-                  disabled={cardPage === Math.ceil(entries.length / CARDS_PER_PAGE)}
-                  className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                >
-                  <ChevronLeft size={20} className="rotate-180" />
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <PeakFlowTable entries={entries.map((e) => e.entry)} />
-        )}
->>>>>>> Stashed changes
       </div>
 
       <Link

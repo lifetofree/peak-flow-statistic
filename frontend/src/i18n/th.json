@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "PeakFlowStatX",
+    "title": "Peak Flow Stat - Allergy Clinic",
     "subtitle": "ระบบติดตามค่าแรงเป่าลม"
   },
   "nav": {
@@ -20,10 +20,10 @@
     "date": "วันที่",
     "peakFlow": "ค่าแรงเป่าลม",
     "reading": "ครั้งที่ {{number}}",
-    "spO2": "ระดับออกซิเจนในเลือด",
-    "medicationTiming": "การรับประทานยา",
-    "before": "ก่อนรับประทานยา",
-    "after": "หลังรับประทานยา",
+    "spO2": "SpO₂",
+    "medicationTiming": "เวลา",
+    "before": "ก่อนใช้ยา",
+    "after": "หลังใช้ยา",
     "period": "ช่วงเวลา",
     "morning": "เช้า",
     "evening": "เย็น",
@@ -34,21 +34,19 @@
     "showLess": "ซ่อน",
     "previewNote": "ดูตัวอย่าง",
     "editNote": "แก้ไข",
-    "notePlaceholder": "เขียนบันทึก... (รองรับ Markdown)",
+    "notePlaceholder": "เขียนบันทึก...",
     "noNote": "ไม่มีบันทึก",
     "lastEntry": "บันทึกล่าสุด",
-    "close": "ปิด",
-    "from": "จากวันที่",
-    "to": "ถึงวันที่"
+    "close": "ปิด"
   },
   "zone": {
     "green": "ปกติ",
     "yellow": "ระวัง",
     "red": "อันตราย",
-    "noPersonalBest": "ยังไม่ได้ตั้งค่า Personal Best กรุณาติดต่อแพทย์"
+    "noPersonalBest": "ยังไม่ได้ตั้งค่า Personal Base กรุณาติดต่อแพทย์"
   },
   "admin": {
-    "title": "แผงควบคุมแอดมิน",
+    "title": "ระบบจัดการผู้ใช้และข้อมูล",
     "users": "ผู้ใช้",
     "entries": "ข้อมูล",
     "auditLog": "ประวัติการแก้ไข",
@@ -58,7 +56,7 @@
     "deleteUser": "ลบผู้ใช้",
     "rotateToken": "สร้างลิงก์ใหม่",
     "export": "ส่งออก CSV",
-    "personalBest": "ค่า Personal Best",
+    "personalBest": "ค่า Personal Base",
     "adminNote": "บันทึกของแอดมิน",
     "firstName": "ชื่อ",
     "lastName": "นามสกุล",
@@ -67,7 +65,7 @@
     "linkCopied": "คัดลอกแล้ว!",
     "shareLink": "ลิงก์สำหรับผู้ใช้",
     "shareVia": "ส่งผ่านแอป",
-    "shareLinkHint": "แสกน QR หรือคัดลอกลิงก์เพื่อส่งให้ผู้ใช้",
+    "shareLinkHint": "สแกน QR หรือคัดลอกลิงก์เพื่อส่งให้ผู้ใช้",
     "clicks": "ครั้งที่เปิด",
     "noData": "ไม่มีข้อมูล",
     "editEntry": "แก้ไขข้อมูล"
@@ -86,10 +84,8 @@
     "delete": "ลบ",
     "edit": "แก้ไข",
     "back": "กลับ",
-    "close": "ปิด",
     "notFound": "ไม่พบหน้าที่ต้องการ",
-    "invalidToken": "ลิงก์ไม่ถูกต้องหรือหมดอายุ",
-    "noData": "ไม่มีข้อมูล"
+    "invalidToken": "ลิงก์ไม่ถูกต้องหรือหมดอายุ"
   },
   "chart": {
     "peakFlowTrend": "แนวโน้มค่าแรงเป่าลม",
@@ -97,20 +93,12 @@
     "days7": "7 วัน",
     "days30": "30 วัน",
     "days90": "90 วัน",
-    "all": "ทั้งหมด",
-    "filterByDate": "กรองตามวันที่"
+    "all": "ทั้งหมด"
   },
   "validation": {
     "peakFlowRange": "ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min",
     "spO2Range": "ค่า SpO2 ต้องอยู่ระหว่าง 70-100%",
     "futureDate": "ไม่สามารถเลือกวันที่ในอนาคต",
     "required": "กรุณากรอกข้อมูล"
-  },
-  "table": {
-    "morningBeforeMed": "เช้า - ก่อนใช้ยา",
-    "morningAfterMed": "เช้า - หลังใช้ยา",
-    "eveningBeforeMed": "เย็น - ก่อนใช้ยา",
-    "eveningAfterMed": "เย็น - หลังใช้ยา",
-    "pfUnit": "PF (L/min)"
   }
 }

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import {
   ChevronLeft,
   Edit2,
@@ -13,21 +14,14 @@ import {
   User as UserIcon,
   StickyNote,
   History,
+  Sun,
+  Moon,
   Link2,
-<<<<<<< Updated upstream
-  Eye,
+  FileText,
 } from 'lucide-react';
 import ShareLinkCard from '../components/ShareLinkCard';
-import { fetchUser, updateUser, updateNote, fetchAdminEntries, deleteUser, updateEntry } from '../api/admin';
-import { formatThaiDate } from '../utils/date';
-import { getBestReading } from '../utils/zone';
-=======
-  Calendar,
-} from 'lucide-react';
-import ShareLinkCard from '../components/ShareLinkCard';
-import PeakFlowTable from '../components/PeakFlowTable';
 import { fetchUser, updateUser, updateNote, fetchAdminEntries, deleteUser } from '../api/admin';
->>>>>>> Stashed changes
+import { formatThaiDate } from '../utils/date';
 
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
@@ -39,32 +33,8 @@ export default function AdminUserDetail() {
   const [editingNote, setEditingNote] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', nickname: '', personalBest: '' });
   const [noteText, setNoteText] = useState('');
-<<<<<<< Updated upstream
   const [entryPage, setEntryPage] = useState(1);
-  const [editingEntry, setEditingEntry] = useState<string | null>(null);
-  const [showNotePreview, setShowNotePreview] = useState(false);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
-  const [entryForm, setEntryForm] = useState({
-    date: '',
-    peakFlowReadings: ['', '', ''] as [string, string, string],
-    spO2: '',
-    medicationTiming: 'before' as 'before' | 'after',
-    period: 'morning' as 'morning' | 'evening',
-    note: '',
-  });
-=======
-const today = new Date().toISOString().split('T')[0];
-
-const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: string; to?: string }>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
-  const value = e.target.value;
-  if (value && value > today) {
-    alert(t('common.validationError', { field: 'Cannot select a date later than today.' }));
-    return;
-  }
-  setter(prev => ({ ...prev, from: value || undefined, to: value || undefined }));
-};
-
->>>>>>> Stashed changes
   const userQuery = useQuery({
     queryKey: ['adminUser', id],
     queryFn: () => fetchUser(id!),
@@ -72,8 +42,8 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['adminEntries', id, dateFilter],
-    queryFn: () => fetchAdminEntries(1, id, true, dateFilter.from, dateFilter.to),
+    queryKey: ['adminEntries', id, entryPage],
+    queryFn: () => fetchAdminEntries(entryPage, id),
     enabled: !!id,
   });
 
@@ -109,49 +79,6 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
       navigate('/admin');
     },
   });
-
-  const updateEntryMutation = useMutation({
-    mutationFn: ({ entryId, data }: { entryId: string; data: any }) =>
-      updateEntry(entryId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminEntries', id] });
-      setEditingEntry(null);
-      setShowNotePreview(false);
-    },
-    onError: (error: any) => {
-      alert(error.message || t('common.error'));
-    },
-  });
-
-  const startEditingEntry = (entry: any) => {
-    const d = new Date(entry.date);
-    const dateStr = d.toISOString().split('T')[0] ?? '';
-    setEntryForm({
-      date: dateStr,
-      peakFlowReadings: entry.peakFlowReadings.map(String) as [string, string, string],
-      spO2: String(entry.spO2),
-      medicationTiming: entry.medicationTiming,
-      period: entry.period,
-      note: entry.note || '',
-    });
-    setShowNotePreview(false);
-    setEditingEntry(entry._id);
-  };
-
-  const handleSaveEntry = () => {
-    if (!editingEntry) return;
-    updateEntryMutation.mutate({
-      entryId: editingEntry,
-      data: {
-        date: new Date(entryForm.date).toISOString(),
-        peakFlowReadings: entryForm.peakFlowReadings.map(Number) as [number, number, number],
-        spO2: Number(entryForm.spO2),
-        medicationTiming: entryForm.medicationTiming,
-        period: entryForm.period,
-        note: entryForm.note,
-      },
-    });
-  };
 
   const handleExport = async () => {
     try {
@@ -213,16 +140,36 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
     );
   }
 
-<<<<<<< Updated upstream
+  // Group entries by date, period, and medication timing, keeping latest entry per combination
+  const groupedEntries = entriesQuery.data?.entries.reduce((acc, entry) => {
+    const dateKey = entry.date.split('T')[0];
+    const periodKey = entry.period;
+    const medKey = entry.medicationTiming;
+    const key = `${dateKey}-${periodKey}-${medKey}`;
+    
+    if (!acc[key] || new Date(entry.createdAt) > new Date(acc[key].createdAt)) {
+      acc[key] = entry;
+    }
+    return acc;
+  }, {} as Record<string, any>);
+
+  // Group by date for display
+  const entriesByDate = Object.values(groupedEntries || {}).reduce((acc, entry) => {
+    const dateKey = entry.date.split('T')[0];
+    if (!acc[dateKey]) acc[dateKey] = [];
+    acc[dateKey].push(entry);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  // Sort dates descending (newest first)
+  const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
   const totalPages = entriesQuery.data
     ? Math.ceil(entriesQuery.data.total / entriesQuery.data.pageSize)
     : 0;
-=======
-  const allEntries = entriesQuery.data?.entries ?? [];
->>>>>>> Stashed changes
 
   return (
-    <div className="min-h-screen p-4 max-w-full mx-auto space-y-6 overflow-x-hidden">
+    <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <Link to="/admin" className="text-blue-600 hover:underline flex items-center gap-1">
           <ChevronLeft size={20} />
@@ -317,7 +264,7 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
                 <Edit2 size={20} />
               </button>
             </div>
-
+            
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 onClick={handleExport}
@@ -347,8 +294,8 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
             {t('admin.adminNote')}
           </h3>
           {!editingNote && (
-            <button
-              onClick={startEditingNote}
+            <button 
+              onClick={startEditingNote} 
               className="text-sm text-blue-600 hover:underline flex items-center gap-1"
             >
               <Edit2 size={14} />
@@ -384,7 +331,7 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
         ) : (
           <div className="prose prose-sm max-w-none bg-gray-50 p-4 rounded-xl border border-dashed">
             {user.adminNote ? (
-              <ReactMarkdown>{user.adminNote}</ReactMarkdown>
+              <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{user.adminNote}</ReactMarkdown>
             ) : (
               <p className="text-gray-400 italic">{t('common.noData')}</p>
             )}
@@ -393,291 +340,156 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
       </div>
 
       <div className="bg-white rounded-xl p-6 shadow-sm border">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <History size={20} className="text-purple-600" />
-            {t('admin.entries')}
-          </h3>
-          <button
-            onClick={() => setShowDateFilter(!showDateFilter)}
-            className={`p-1.5 rounded-md transition-colors ${showDateFilter ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-            title="Filter by date"
-          >
-            <Calendar size={18} />
-          </button>
-        </div>
-        {showDateFilter && (
-          <div className="bg-gray-50 rounded-xl p-4 mb-4 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.from')}</label>
-                <input
-                  type="date"
-                  value={dateFilter.from || ''}
-                  onChange={(e) => setDateFilter({ ...dateFilter, from: e.target.value || undefined })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.to')}</label>
-                <input
-                  type="date"
-                  value={dateFilter.to || ''}
-                  onChange={(e) => setDateFilter({ ...dateFilter, to: e.target.value || undefined })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setDateFilter({}); setShowDateFilter(false); }}
-                className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                onClick={() => setShowDateFilter(false)}
-                className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-              >
-                {t('common.confirm')}
-              </button>
-            </div>
-          </div>
-        )}
+        <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+          <History size={20} className="text-purple-600" />
+          {t('admin.entries')}
+        </h3>
         {entriesQuery.isLoading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
-<<<<<<< Updated upstream
-        ) : !entriesQuery.data || entriesQuery.data.entries.length === 0 ? (
-=======
-        ) : allEntries.length === 0 ? (
->>>>>>> Stashed changes
+        ) : !entriesQuery.data || Object.keys(entriesByDate).length === 0 ? (
           <div className="text-center py-8 text-gray-500 italic border rounded-xl border-dashed">
             {t('entry.noEntries')}
           </div>
         ) : (
-<<<<<<< Updated upstream
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto border rounded-xl">
+            <table className="w-full text-xs">
               <thead className="bg-gray-50 border-b">
                 <tr>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.date')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.period')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.peakFlow')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.spO2')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.medicationTiming')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.note')}</th>
-                  <th className="px-3 py-3"></th>
+                  <th className="px-2 py-2 font-semibold text-gray-600 w-20 border-r border-gray-300" rowSpan={2}>Date</th>
+                  <th className="px-1 py-1 text-center text-orange-700 font-bold border-r border-orange-200" colSpan={3}>
+                    <div className="flex items-center justify-center gap-1">
+                      <Sun className="text-orange-500" size={10} />
+                      Morning - Before Med
+                    </div>
+                  </th>
+                  <th className="px-1 py-1 text-center text-purple-700 font-bold border-r border-purple-200" colSpan={3}>
+                    <div className="flex items-center justify-center gap-1">
+                      <Sun className="text-orange-500" size={10} />
+                      Morning - After Med
+                    </div>
+                  </th>
+                  <th className="px-1 py-1 text-center text-indigo-700 font-bold border-r border-indigo-200" colSpan={3}>
+                    <div className="flex items-center justify-center gap-1">
+                      <Moon className="text-indigo-600" size={10} />
+                      Evening - Before Med
+                    </div>
+                  </th>
+                  <th className="px-1 py-1 text-center text-blue-700 font-bold border-r border-blue-200" colSpan={3}>
+                    <div className="flex items-center justify-center gap-1">
+                      <Moon className="text-indigo-600" size={10} />
+                      Evening - After Med
+                    </div>
+                  </th>
+                </tr>
+                <tr className="bg-gray-50/70 text-gray-500">
+                  <th className="px-1 py-1 text-center font-medium border-r border-orange-200">PF</th>
+                  <th className="px-1 py-1 text-center font-medium border-r border-orange-200">SpO₂</th>
+                  <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
+                  
+                  <th className="px-1 py-1 text-center font-medium border-r border-purple-200">PF</th>
+                  <th className="px-1 py-1 text-center font-medium border-r border-purple-200">SpO₂</th>
+                  <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
+                  
+                  <th className="px-1 py-1 text-center font-medium border-r border-indigo-200">PF</th>
+                  <th className="px-1 py-1 text-center font-medium border-r border-indigo-200">SpO₂</th>
+                  <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
+                  
+                  <th className="px-1 py-1 text-center font-medium border-r border-blue-200">PF</th>
+                  <th className="px-1 py-1 text-center font-medium border-r border-blue-200">SpO₂</th>
+                  <th className="px-1 py-1 text-center font-medium">Note</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {entriesQuery.data.entries.map((entry) => (
-                  <tr key={entry._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-3 py-3 whitespace-nowrap">{formatThaiDate(entry.date)}</td>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {entry.period === 'morning' ? (
-                          <Sun className="text-orange-500" size={14} />
-                        ) : (
-                          <Moon className="text-indigo-600" size={14} />
-                        )}
-                        <span className="text-xs font-medium uppercase tracking-tight text-gray-500">
-                          {t(`entry.${entry.period}`)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="font-medium">{getBestReading(entry.peakFlowReadings)}</span> L/min
-                      <span className="text-xs text-gray-400 ml-1">
-                        ({entry.peakFlowReadings.join('/')})
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                {sortedDates.map((dateKey) => {
+                  const dateEntries = entriesByDate[dateKey] || [];
+                  
+                  // Find entries by period and medication timing
+                  const morningBeforeEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'before');
+                  const morningAfterEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'after');
+                  const eveningBeforeEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'before');
+                  const eveningAfterEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'after');
+
+                  const renderCell = (entry: any) => {
+                    if (!entry) return <span className="text-gray-300">-</span>;
+                    return entry.peakFlowReadings.join('/');
+                  };
+                  
+                  const renderSpO2 = (entry: any) => {
+                    if (!entry) return <span className="text-gray-300">-</span>;
+                    return (
+                      <span className={`px-1 py-0.5 rounded text-xs font-bold ${
                         entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                       }`}>
-                        {entry.spO2}%
+                        {entry.spO2}
                       </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="text-gray-600">{t(`entry.${entry.medicationTiming}`)}</span>
-                    </td>
-                    <td className="px-3 py-3">
-                      {entry.note ? (
-                        entry.note.length > 30 ? (
-                          <button
-                            onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
-                            className="text-xs text-blue-600 hover:underline text-left"
-                          >
-                            {entry.note.slice(0, 30)}...
-                          </button>
-                        ) : (
-                          <span className="text-xs text-gray-600">{entry.note}</span>
-                        )
-                      ) : (
-                        <span className="text-gray-400 text-xs">-</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-right">
+                    );
+                  };
+                  
+                  const renderNote = (entry: any) => {
+                    if (!entry?.note) return <span className="text-gray-300">-</span>;
+                    return (
                       <button
-                        onClick={() => startEditingEntry(entry)}
-                        className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                        title={t('common.edit')}
+                        onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
+                        className="text-gray-400 hover:text-blue-600 transition-colors"
+                        title="View note"
                       >
-                        <Edit2 size={16} />
+                        <FileText size={12} />
                       </button>
-                    </td>
-                  </tr>
-                ))}
+                    );
+                  };
+
+                  return (
+                    <tr key={dateKey} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-2 py-2 whitespace-nowrap font-medium text-gray-700 border-r border-gray-200">
+                        {formatThaiDate(dateEntries[0].date)}
+                      </td>
+                      {/* Morning - Before Med: PF, SpO2, Note */}
+                      <td className="px-1 py-2 text-center border-r border-orange-200 bg-orange-50/20">
+                        {renderCell(morningBeforeEntry)}
+                      </td>
+                      <td className="px-1 py-2 text-center border-r border-orange-200 bg-orange-50/20">
+                        {renderSpO2(morningBeforeEntry)}
+                      </td>
+                      <td className="px-1 py-2 text-center border-r border-gray-200 bg-orange-50/20">
+                        {renderNote(morningBeforeEntry)}
+                      </td>
+                      {/* Morning - After Med: PF, SpO2, Note */}
+                      <td className="px-1 py-2 text-center border-r border-purple-200 bg-purple-50/20">
+                        {renderCell(morningAfterEntry)}
+                      </td>
+                      <td className="px-1 py-2 text-center border-r border-purple-200 bg-purple-50/20">
+                        {renderSpO2(morningAfterEntry)}
+                      </td>
+                      <td className="px-1 py-2 text-center border-r border-gray-200 bg-purple-50/20">
+                        {renderNote(morningAfterEntry)}
+                      </td>
+                      {/* Evening - Before Med: PF, SpO2, Note */}
+                      <td className="px-1 py-2 text-center border-r border-indigo-200 bg-indigo-50/20">
+                        {renderCell(eveningBeforeEntry)}
+                      </td>
+                      <td className="px-1 py-2 text-center border-r border-indigo-200 bg-indigo-50/20">
+                        {renderSpO2(eveningBeforeEntry)}
+                      </td>
+                      <td className="px-1 py-2 text-center border-r border-gray-200 bg-indigo-50/20">
+                        {renderNote(eveningBeforeEntry)}
+                      </td>
+                      {/* Evening - After Med: PF, SpO2, Note */}
+                      <td className="px-1 py-2 text-center border-r border-blue-200 bg-blue-50/20">
+                        {renderCell(eveningAfterEntry)}
+                      </td>
+                      <td className="px-1 py-2 text-center border-r border-blue-200 bg-blue-50/20">
+                        {renderSpO2(eveningAfterEntry)}
+                      </td>
+                      <td className="px-1 py-2 text-center bg-blue-50/20">
+                        {renderNote(eveningAfterEntry)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-          </div>
-        )}
-
-        {editingEntry && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-xl border space-y-3">
-            <h4 className="font-semibold text-gray-700">{t('admin.editEntry') || 'Edit Entry'}</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.date')}</label>
-                <input
-                  type="date"
-                  value={entryForm.date}
-                  onChange={(e) => setEntryForm({ ...entryForm, date: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.period')}</label>
-                <div className="flex bg-white border rounded-lg overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setEntryForm({ ...entryForm, period: 'morning' })}
-                    className={`flex-1 py-2 text-xs font-medium ${
-                      entryForm.period === 'morning' ? 'bg-blue-100 text-blue-700' : 'text-gray-500'
-                    }`}
-                  >
-                    {t('entry.morning')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEntryForm({ ...entryForm, period: 'evening' })}
-                    className={`flex-1 py-2 text-xs font-medium ${
-                      entryForm.period === 'evening' ? 'bg-blue-100 text-blue-700' : 'text-gray-500'
-                    }`}
-                  >
-                    {t('entry.evening')}
-                  </button>
-                </div>
-              </div>
-              <div className="col-span-2">
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.peakFlow')} (L/min)</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[0, 1, 2].map((i) => (
-                    <input
-                      key={i}
-                      type="number"
-                      value={entryForm.peakFlowReadings[i]}
-                      onChange={(e) => {
-                        const newReadings = [...entryForm.peakFlowReadings] as [string, string, string];
-                        newReadings[i] = e.target.value;
-                        setEntryForm({ ...entryForm, peakFlowReadings: newReadings });
-                      }}
-                      className="border rounded-lg px-3 py-2 text-sm"
-                      placeholder={`${t('entry.reading', { number: i + 1 })}`}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.spO2')} (%)</label>
-                <input
-                  type="number"
-                  value={entryForm.spO2}
-                  onChange={(e) => setEntryForm({ ...entryForm, spO2: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.medicationTiming')}</label>
-                <div className="flex bg-white border rounded-lg overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setEntryForm({ ...entryForm, medicationTiming: 'before' })}
-                    className={`flex-1 py-2 text-xs font-medium ${
-                      entryForm.medicationTiming === 'before' ? 'bg-blue-100 text-blue-700' : 'text-gray-500'
-                    }`}
-                  >
-                    {t('entry.before')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEntryForm({ ...entryForm, medicationTiming: 'after' })}
-                    className={`flex-1 py-2 text-xs font-medium ${
-                      entryForm.medicationTiming === 'after' ? 'bg-blue-100 text-blue-700' : 'text-gray-500'
-                    }`}
-                  >
-                    {t('entry.after')}
-                  </button>
-                </div>
-              </div>
-              <div className="col-span-2">
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-xs text-gray-500">{t('entry.note')}</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowNotePreview(!showNotePreview)}
-                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                  >
-                    {showNotePreview ? (
-                      <>
-                        <Edit2 size={12} />
-                        {t('entry.editNote')}
-                      </>
-                    ) : (
-                      <>
-                        <Eye size={12} />
-                        {t('entry.previewNote')}
-                      </>
-                    )}
-                  </button>
-                </div>
-                {showNotePreview ? (
-                  <div className="border rounded-lg px-3 py-2 min-h-[60px] bg-gray-50 prose prose-sm max-w-none">
-                    {entryForm.note ? (
-                      <ReactMarkdown>{entryForm.note}</ReactMarkdown>
-                    ) : (
-                      <p className="text-gray-400 italic">{t('entry.noNote')}</p>
-                    )}
-                  </div>
-                ) : (
-                  <textarea
-                    value={entryForm.note}
-                    onChange={(e) => setEntryForm({ ...entryForm, note: e.target.value })}
-                    rows={2}
-                    placeholder={t('entry.notePlaceholder')}
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
-                  />
-                )}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleSaveEntry}
-                disabled={updateEntryMutation.isPending}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Save size={14} />
-                {updateEntryMutation.isPending ? t('common.loading') : t('common.save')}
-              </button>
-              <button
-                onClick={() => { setEditingEntry(null); setShowNotePreview(false); }}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200"
-              >
-                {t('common.cancel')}
-              </button>
-            </div>
           </div>
         )}
 
@@ -694,7 +506,7 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
                 </button>
               </div>
               <div className="p-4 prose prose-sm max-w-none">
-                <ReactMarkdown>{viewingNote.note}</ReactMarkdown>
+                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{viewingNote.note}</ReactMarkdown>
               </div>
               <div className="p-4 border-t">
                 <button
@@ -728,9 +540,6 @@ const handleDateChange = (setter: React.Dispatch<React.SetStateAction<{ from?: s
               <ChevronLeft size={20} className="rotate-180" />
             </button>
           </div>
-=======
-          <PeakFlowTable entries={allEntries} />
->>>>>>> Stashed changes
         )}
       </div>
     </div>
