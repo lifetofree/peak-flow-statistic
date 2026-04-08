@@ -14,7 +14,7 @@ const validateShortLink = async (c: any, next: any) => {
   const db = new DatabaseClient(c.env);
 
   const user = await db.findOne<any>('users', { short_token: token, deleted_at: null });
-  if (!user) return c.json({ error: 'Not found' }, 404);
+  if (!user) return c.json({ error: 'ไม่พบข้อมูล' }, 404);
 
   c.set('userId', user.id);
   c.set('user', user);
@@ -38,14 +38,17 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
   const userId = c.get('userId');
   const user = c.get('user');
   const page = parseInt(c.req.query('page') || '1');
-  const from = c.req.query('from');
-  const to = c.req.query('to');
+  const all = c.req.query('all');
   const offset = (page - 1) * PAGE_SIZE;
 
   let filter: Record<string, any> = { user_id: userId };
 
+  const findOptions = all === 'true'
+    ? { orderBy: 'date' as const, order: 'DESC' as const }
+    : { orderBy: 'date' as const, order: 'DESC' as const, limit: PAGE_SIZE, offset };
+
   const [entries, total] = await Promise.all([
-    db.find<any>('entries', filter, { orderBy: 'date', order: 'DESC', limit: PAGE_SIZE, offset }),
+    db.find<any>('entries', filter, findOptions),
     db.count('entries', filter),
   ]);
 
@@ -81,8 +84,12 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
 
 const createEntrySchema = z.object({
   date: z.string(),
-  peakFlowReadings: z.tuple([z.number(), z.number(), z.number()]),
-  spO2: z.number().int().min(70).max(100),
+  peakFlowReadings: z.tuple([
+    z.number().int().min(50, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }).max(900, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }),
+    z.number().int().min(50, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }).max(900, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }),
+    z.number().int().min(50, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }).max(900, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }),
+  ]),
+  spO2: z.number().int().min(70, { message: 'ค่า SpO₂ ต้องมากกว่าหรือเท่ากับ 70%' }).max(100, { message: 'ค่า SpO₂ ต้องน้อยกว่าหรือเท่ากับ 100%' }),
   medicationTiming: z.enum(['before', 'after']),
   period: z.enum(['morning', 'evening']),
   note: z.string().optional(),

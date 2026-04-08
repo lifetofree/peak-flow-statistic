@@ -1,6 +1,7 @@
 # PeakFlowStatX — Issues
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 All previously tracked issues have been resolved as of 2026-04-07 (v11).
 
 ## Resolved Changes
@@ -14,6 +15,8 @@ All previously tracked issues have been resolved as of 2026-04-07 (v11).
 | 2026-04-07 | v14: Removed native share button from ShareLinkCard. EntryCard notes now show 60-char preview with show more/less toggle. Admin can edit entry records. |
 | 2026-04-07 | v15: Added cancel button to admin create user form. |
 
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 ## Notes
@@ -111,4 +114,7 @@ All previously tracked issues have been resolved as of 2026-04-07 (v11).
 | 10 | No entry date range search in admin | Missing feature | ✅ Fixed |
 | 11 | No backend admin auth | Security (by design) | ⚠️ N/A |
 | 12 | SQL injection risk in DatabaseClient | Security | ✅ Fixed |
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
