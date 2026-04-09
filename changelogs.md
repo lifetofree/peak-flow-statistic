@@ -6,6 +6,12 @@ v1.1.0 (2026-04-08)
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-04-08 | v39 | PeakFlowTable extracted as shared component used by UserDashboard and AdminUserDetail. Table headers localized via th.json table section. Empty cells render null (no dash). |
+| 2026-04-08 | v38 | Frontend fetches all entries in single request using ?all=true. Replaced sequential page-loop with single API call in UserDashboard and AdminUserDetail. fetchUserEntries and fetchAdminEntries updated with all/from/to params. |
+| 2026-04-08 | v37 | Added date range filter (from/to) to GET /admin/entries using $gte/$lte operators. |
+| 2026-04-08 | v36 | Fixed N+1 in /admin/entries: removed per-entry user lookup and zone calculation. Zone not used by frontend Entry type. |
+| 2026-04-08 | v35 | Added Zod validation (max 5000) to PATCH /admin/users/:id/note. peakFlowReadings each value now validated int min 50 max 900 in both admin and user routes. Added PEAK_FLOW_MAX = 900 constant. |
+| 2026-04-08 | v34 | Fixed duplicate PAGE_SIZE declaration in admin.ts (build error). Fixed import ordering. Fixed CSV date range filter overwrite bug using $gte/$lte. Added ALLOWED_TABLES and ALLOWED_ORDER_COLUMNS whitelists to DatabaseClient with $gte/$lte operator support. Fixed limit !== undefined guard. |
 | 2026-04-07 | v33 | User dashboard table: same layout as admin (date/period/med grouping, 20 dates/page, pagination). Card view: 10 cards/page pagination. PF header shows (L/min), PF values use default color (no zone). Note icon only shows when entry has note. common.close added to th.json. |
 | 2026-04-07 | v32 | Admin user detail table: grouped by date, period, medication timing. Separate PF/SpO2/Note columns. Note shows 📄 icon, click for modal. |
 | 2026-04-07 | v31 | Added CORS_ORIGIN required check. Added console.warn to JSON.parse catch blocks. |
