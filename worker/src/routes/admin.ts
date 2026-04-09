@@ -2,15 +2,12 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { DatabaseClient } from '../lib/database';
+import { calculateZone } from './zone';
 import type { Env } from '../index';
 
-export const PEAK_FLOW_MIN = 50;
-export const PEAK_FLOW_MAX = 900;
-export const SPO2_MIN = 70;
-export const PERSONAL_BEST_MIN = 50;
-export const PAGE_SIZE = 20;
-
 const app = new Hono<{ Bindings: Env }>();
+
+const PAGE_SIZE = 20;
 
 app.get('/admin/users', async (c) => {
   const db = new DatabaseClient(c.env);
@@ -51,10 +48,10 @@ app.get('/admin/users', async (c) => {
 });
 
 const createUserSchema = z.object({
-  firstName: z.string().min(1, { message: 'กรุณากรอกชื่อ' }),
-  lastName: z.string().min(1, { message: 'กรุณากรอกนามสกุล' }),
-  nickname: z.string().min(1, { message: 'กรุณากรอกชื่อเล่น' }),
-  personalBest: z.number().int().min(50, { message: 'ค่า Personal Base ต้องมากกว่าหรือเท่ากับ 50 L/min' }).max(900, { message: 'ค่า Personal Base ต้องน้อยกว่าหรือเท่ากับ 900 L/min' }).nullable().optional(),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  nickname: z.string().min(1),
+  personalBest: z.number().int().min(50).max(900).nullable().optional(),
   adminNote: z.string().optional(),
 });
 
@@ -114,7 +111,7 @@ app.get('/admin/users/:id', async (c) => {
   const db = new DatabaseClient(c.env);
   const user = await db.findOne<any>('users', { id: c.req.param('id') });
 
-  if (!user) return c.json({ error: 'ไม่พบข้อมูล' }, 404);
+  if (!user) return c.json({ error: 'Not found' }, 404);
 
   return c.json({
     _id: user.id,
@@ -133,10 +130,10 @@ app.get('/admin/users/:id', async (c) => {
 });
 
 const updateUserSchema = z.object({
-  firstName: z.string().min(1, { message: 'กรุณากรอกชื่อ' }).optional(),
-  lastName: z.string().min(1, { message: 'กรุณากรอกนามสกุล' }).optional(),
-  nickname: z.string().min(1, { message: 'กรุณากรอกชื่อเล่น' }).optional(),
-  personalBest: z.number().int().min(50, { message: 'ค่า Personal Base ต้องมากกว่าหรือเท่ากับ 50 L/min' }).max(900, { message: 'ค่า Personal Base ต้องน้อยกว่าหรือเท่ากับ 900 L/min' }).nullable().optional(),
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+  nickname: z.string().min(1).optional(),
+  personalBest: z.number().int().min(50).max(900).nullable().optional(),
 });
 
 app.patch('/admin/users/:id', zValidator('json', updateUserSchema), async (c) => {
@@ -146,8 +143,8 @@ app.patch('/admin/users/:id', zValidator('json', updateUserSchema), async (c) =>
   const now = new Date().toISOString();
 
   const user = await db.findOne<any>('users', { id: userId });
-  if (!user) return c.json({ error: 'ไม่พบข้อมูล' }, 404);
-  if (user.deleted_at) return c.json({ error: 'ผู้ใช้ถูกลบแล้ว' }, 400);
+  if (!user) return c.json({ error: 'Not found' }, 404);
+  if (user.deleted_at) return c.json({ error: 'User is deleted' }, 400);
 
   const before = { ...user };
   const updates: Record<string, any> = { updated_at: now };
@@ -192,7 +189,7 @@ app.delete('/admin/users/:id', async (c) => {
   const now = new Date().toISOString();
 
   const user = await db.findOne<any>('users', { id: userId });
-  if (!user) return c.json({ error: 'ไม่พบข้อมูล' }, 404);
+  if (!user) return c.json({ error: 'Not found' }, 404);
 
   await db.updateOne('users', { id: userId }, { deleted_at: now, updated_at: now });
 
@@ -209,18 +206,14 @@ app.delete('/admin/users/:id', async (c) => {
   return c.json({ success: true });
 });
 
-const adminNoteSchema = z.object({
-  adminNote: z.string().max(5000),
-});
-
-app.patch('/admin/users/:id/note', zValidator('json', adminNoteSchema), async (c) => {
+app.patch('/admin/users/:id/note', async (c) => {
   const db = new DatabaseClient(c.env);
   const userId = c.req.param('id');
-  const { adminNote } = c.req.valid('json');
+  const { adminNote } = await c.req.json();
   const now = new Date().toISOString();
 
   const user = await db.findOne<any>('users', { id: userId });
-  if (!user) return c.json({ error: 'ไม่พบข้อมูล' }, 404);
+  if (!user) return c.json({ error: 'Not found' }, 404);
 
   const before = { adminNote: user.admin_note };
   await db.updateOne('users', { id: userId }, { admin_note: adminNote, updated_at: now });
@@ -245,12 +238,11 @@ app.get('/admin/users/:id/export', async (c) => {
   const to = c.req.query('to');
 
   const user = await db.findOne<any>('users', { id: userId });
-  if (!user) return c.json({ error: 'ไม่พบข้อมูล' }, 404);
+  if (!user) return c.json({ error: 'Not found' }, 404);
 
   let filter: Record<string, any> = { user_id: userId };
-  if (from || to) {
-    filter.date = { ...(from && { $gte: from }), ...(to && { $lte: to }) };
-  }
+  if (from) filter.date = from;
+  if (to) filter.date = `%${to}%`;
 
   const entries = await db.find<any>('entries', filter, { orderBy: 'date', order: 'ASC' });
 
@@ -275,33 +267,26 @@ app.get('/admin/entries', async (c) => {
   const db = new DatabaseClient(c.env);
   const page = parseInt(c.req.query('page') || '1');
   const userId = c.req.query('userId');
-  const from = c.req.query('from');
-  const to = c.req.query('to');
-  const all = c.req.query('all');
   const offset = (page - 1) * PAGE_SIZE;
 
   let filter: Record<string, any> = {};
   if (userId) filter.user_id = userId;
-  if (from || to) {
-    filter.date = { ...(from && { $gte: from }), ...(to && { $lte: to }) };
-  }
-
-  const findOptions = all === 'true'
-    ? { orderBy: 'date' as const, order: 'DESC' as const }
-    : { orderBy: 'date' as const, order: 'DESC' as const, limit: PAGE_SIZE, offset };
 
   const [entries, total] = await Promise.all([
-    db.find<any>('entries', filter, findOptions),
+    db.find<any>('entries', filter, { orderBy: 'date', order: 'DESC', limit: PAGE_SIZE, offset }),
     db.count('entries', filter),
   ]);
 
-  const formattedEntries = entries.map((e: any) => {
+  const formattedEntries = await Promise.all(entries.map(async (e: any) => {
+    const user = await db.findOne<any>('users', { id: e.user_id });
     let peakFlowReadings: number[] = [];
     try {
       peakFlowReadings = JSON.parse(e.peak_flow_readings || '[]');
     } catch {
       peakFlowReadings = [e.peak_flow];
     }
+    const bestReading = peakFlowReadings.length > 0 ? Math.max(...peakFlowReadings) : e.peak_flow;
+    const zone = user?.personal_best ? calculateZone(bestReading, user.personal_best) : null;
 
     return {
       _id: e.id,
@@ -312,22 +297,19 @@ app.get('/admin/entries', async (c) => {
       medicationTiming: e.medication_timing,
       period: e.period || 'morning',
       note: e.note || '',
+      zone,
       createdAt: e.created_at,
       updatedAt: e.updated_at,
     };
-  });
+  }));
 
   return c.json({ entries: formattedEntries, total, page, pageSize: PAGE_SIZE });
 });
 
 const updateEntrySchema = z.object({
   date: z.string().optional(),
-  peakFlowReadings: z.tuple([
-    z.number().int().min(PEAK_FLOW_MIN, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }).max(PEAK_FLOW_MAX, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }),
-    z.number().int().min(PEAK_FLOW_MIN, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }).max(PEAK_FLOW_MAX, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }),
-    z.number().int().min(PEAK_FLOW_MIN, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }).max(PEAK_FLOW_MAX, { message: 'ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min' }),
-  ]).optional(),
-  spO2: z.number().int().min(70, { message: 'ค่า SpO₂ ต้องมากกว่าหรือเท่ากับ 70%' }).max(100, { message: 'ค่า SpO₂ ต้องน้อยกว่าหรือเท่ากับ 100%' }).optional(),
+  peakFlowReadings: z.tuple([z.number(), z.number(), z.number()]).optional(),
+  spO2: z.number().int().min(70).max(100).optional(),
   medicationTiming: z.enum(['before', 'after']).optional(),
   period: z.enum(['morning', 'evening']).optional(),
   note: z.string().optional(),
@@ -340,7 +322,7 @@ app.patch('/admin/entries/:id', zValidator('json', updateEntrySchema), async (c)
   const now = new Date().toISOString();
 
   const entry = await db.findOne<any>('entries', { id: entryId });
-  if (!entry) return c.json({ error: 'ไม่พบข้อมูล' }, 404);
+  if (!entry) return c.json({ error: 'Not found' }, 404);
 
   const before = { ...entry };
   const updates: Record<string, any> = { updated_at: now };
@@ -385,7 +367,7 @@ app.delete('/admin/entries/:id', async (c) => {
   const now = new Date().toISOString();
 
   const entry = await db.findOne<any>('entries', { id: entryId });
-  if (!entry) return c.json({ error: 'ไม่พบข้อมูล' }, 404);
+  if (!entry) return c.json({ error: 'Not found' }, 404);
 
   await db.deleteOne('entries', { id: entryId });
 

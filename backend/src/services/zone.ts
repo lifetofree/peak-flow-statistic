@@ -27,6 +27,7 @@ export function calculateZone(bestReading: number, personalBest: number): ZoneRe
   return { zone, percentage };
 }
 
-export function getBestReading(readings: number[]): number {
+export function getBestReading(readings: number[]): number | null {
+  if (readings.length === 0) return null;
   return Math.max(...readings);
 }

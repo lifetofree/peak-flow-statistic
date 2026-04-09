@@ -1,2 +1,4 @@
 # Claude settings (may contain sensitive data)
 .claude/
+
+worker/package-lock.json
