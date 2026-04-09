@@ -21,16 +21,15 @@ export default function UserDashboard() {
   const profileQuery = useQuery({
     queryKey: ['userProfile', token],
     queryFn: () => fetchUserProfile(token!),
-    enabled: !!token,
+    enabled: Boolean(token),
   });
 
   const pageSize = viewMode === 'card' ? 10 : 20;
 
   const entriesQuery = useQuery({
     queryKey: ['userEntries', token, page, pageSize, dateFrom, dateTo],
-    queryFn: () => fetchUserEntries(token!, page, dateFrom || undefined, dateTo || undefined),
-    enabled: !!token,
-    placeholderData: (prev) => prev,
+    queryFn: () => fetchUserEntries(token!, page, undefined, dateFrom || undefined, dateTo || undefined),
+    enabled: Boolean(token),
   });
 
   const today = new Date().toISOString().split('T')[0];
