@@ -28,7 +28,7 @@ export default function UserDashboard() {
 
   const entriesQuery = useQuery({
     queryKey: ['userEntries', token, page, pageSize, dateFrom, dateTo],
-    queryFn: () => fetchUserEntries(token!, page, undefined, dateFrom || undefined, dateTo || undefined),
+    queryFn: () => fetchUserEntries(token!, page, dateFrom || undefined, dateTo || undefined),
     enabled: Boolean(token),
   });
 
