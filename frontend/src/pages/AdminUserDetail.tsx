@@ -18,6 +18,7 @@ import {
   Moon,
   Link2,
   FileText,
+  Calendar,
 } from 'lucide-react';
 import ShareLinkCard from '../components/ShareLinkCard';
 import { fetchUser, updateUser, updateNote, fetchAdminEntries, deleteUser } from '../api/admin';
@@ -34,7 +35,12 @@ export default function AdminUserDetail() {
   const [form, setForm] = useState({ firstName: '', lastName: '', nickname: '', personalBest: '' });
   const [noteText, setNoteText] = useState('');
   const [entryPage, setEntryPage] = useState(1);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
+  const today = new Date().toISOString().split('T')[0];
+  const pageSize = 20;
+
   const userQuery = useQuery({
     queryKey: ['adminUser', id],
     queryFn: () => fetchUser(id!),
@@ -42,9 +48,10 @@ export default function AdminUserDetail() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['adminEntries', id, entryPage],
-    queryFn: () => fetchAdminEntries(entryPage, id),
+    queryKey: ['adminEntries', id, entryPage, dateFrom, dateTo],
+    queryFn: () => fetchAdminEntries(entryPage, id, dateFrom || undefined, dateTo || undefined),
     enabled: !!id,
+    placeholderData: (prev) => prev,
   });
 
   const updateMutation = useMutation({
@@ -163,10 +170,6 @@ export default function AdminUserDetail() {
 
   // Sort dates descending (newest first)
   const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-
-  const totalPages = entriesQuery.data
-    ? Math.ceil(entriesQuery.data.total / entriesQuery.data.pageSize)
-    : 0;
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
@@ -344,6 +347,36 @@ export default function AdminUserDetail() {
           <History size={20} className="text-purple-600" />
           {t('admin.entries')}
         </h3>
+        
+        {/* Date Filter */}
+        <div className="flex items-center gap-2 mb-4 pb-4 border-b">
+          <Calendar size={16} className="text-gray-400" />
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => { setDateFrom(e.target.value); setEntryPage(1); }}
+            max={dateTo || today}
+            className="text-sm border rounded-lg px-2 py-1"
+          />
+          <span className="text-gray-400 text-sm">-</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => { setDateTo(e.target.value); setEntryPage(1); }}
+            max={today}
+            min={dateFrom}
+            className="text-sm border rounded-lg px-2 py-1"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(''); setDateTo(''); setEntryPage(1); }}
+              className="text-xs text-gray-500 hover:text-gray-700 ml-2"
+            >
+              {t('common.clear')}
+            </button>
+          )}
+        </div>
+
         {entriesQuery.isLoading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -352,146 +385,146 @@ export default function AdminUserDetail() {
           <div className="text-center py-8 text-gray-500 italic border rounded-xl border-dashed">
             {t('entry.noEntries')}
           </div>
-        ) : (
-          <div className="overflow-x-auto border rounded-xl">
-            <table className="w-full text-xs">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-2 py-2 font-semibold text-gray-600 w-20 border-r border-gray-300" rowSpan={2}>Date</th>
-                  <th className="px-1 py-1 text-center text-orange-700 font-bold border-r border-orange-200" colSpan={3}>
-                    <div className="flex items-center justify-center gap-1">
-                      <Sun className="text-orange-500" size={10} />
-                      Morning - Before Med
-                    </div>
-                  </th>
-                  <th className="px-1 py-1 text-center text-purple-700 font-bold border-r border-purple-200" colSpan={3}>
-                    <div className="flex items-center justify-center gap-1">
-                      <Sun className="text-orange-500" size={10} />
-                      Morning - After Med
-                    </div>
-                  </th>
-                  <th className="px-1 py-1 text-center text-indigo-700 font-bold border-r border-indigo-200" colSpan={3}>
-                    <div className="flex items-center justify-center gap-1">
-                      <Moon className="text-indigo-600" size={10} />
-                      Evening - Before Med
-                    </div>
-                  </th>
-                  <th className="px-1 py-1 text-center text-blue-700 font-bold border-r border-blue-200" colSpan={3}>
-                    <div className="flex items-center justify-center gap-1">
-                      <Moon className="text-indigo-600" size={10} />
-                      Evening - After Med
-                    </div>
-                  </th>
-                </tr>
-                <tr className="bg-gray-50/70 text-gray-500">
-                  <th className="px-1 py-1 text-center font-medium border-r border-orange-200">PF</th>
-                  <th className="px-1 py-1 text-center font-medium border-r border-orange-200">SpO₂</th>
-                  <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
-                  
-                  <th className="px-1 py-1 text-center font-medium border-r border-purple-200">PF</th>
-                  <th className="px-1 py-1 text-center font-medium border-r border-purple-200">SpO₂</th>
-                  <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
-                  
-                  <th className="px-1 py-1 text-center font-medium border-r border-indigo-200">PF</th>
-                  <th className="px-1 py-1 text-center font-medium border-r border-indigo-200">SpO₂</th>
-                  <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
-                  
-                  <th className="px-1 py-1 text-center font-medium border-r border-blue-200">PF</th>
-                  <th className="px-1 py-1 text-center font-medium border-r border-blue-200">SpO₂</th>
-                  <th className="px-1 py-1 text-center font-medium">Note</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {sortedDates.map((dateKey) => {
-                  const dateEntries = entriesByDate[dateKey] || [];
-                  
-                  // Find entries by period and medication timing
-                  const morningBeforeEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'before');
-                  const morningAfterEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'after');
-                  const eveningBeforeEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'before');
-                  const eveningAfterEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'after');
+        ) : (() => {
+              const totalDates = sortedDates.length;
+              const totalPages = Math.ceil(totalDates / pageSize);
+              const startIdx = (entryPage - 1) * pageSize;
+              const endIdx = startIdx + pageSize;
+              const paginatedDates = sortedDates.slice(startIdx, endIdx);
+              
+              if (totalDates === 0) return null;
+              
+              return (
+                <>
+                  <div className="overflow-x-auto border rounded-xl">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="px-2 py-2 font-semibold text-gray-600 w-20 border-r border-gray-300" rowSpan={2}>Date</th>
+                          <th className="px-1 py-1 text-center text-orange-700 font-bold border-r border-orange-200" colSpan={3}>
+                            <div className="flex items-center justify-center gap-1">
+                              <Sun className="text-orange-500" size={10} />
+                              Morning - Before Med
+                            </div>
+                          </th>
+                          <th className="px-1 py-1 text-center text-purple-700 font-bold border-r border-purple-200" colSpan={3}>
+                            <div className="flex items-center justify-center gap-1">
+                              <Sun className="text-orange-500" size={10} />
+                              Morning - After Med
+                            </div>
+                          </th>
+                          <th className="px-1 py-1 text-center text-indigo-700 font-bold border-r border-indigo-200" colSpan={3}>
+                            <div className="flex items-center justify-center gap-1">
+                              <Moon className="text-indigo-600" size={10} />
+                              Evening - Before Med
+                            </div>
+                          </th>
+                          <th className="px-1 py-1 text-center text-blue-700 font-bold border-r border-blue-200" colSpan={3}>
+                            <div className="flex items-center justify-center gap-1">
+                              <Moon className="text-indigo-600" size={10} />
+                              Evening - After Med
+                            </div>
+                          </th>
+                        </tr>
+                        <tr className="bg-gray-50/70 text-gray-500">
+                          <th className="px-1 py-1 text-center font-medium border-r border-orange-200">PF</th>
+                          <th className="px-1 py-1 text-center font-medium border-r border-orange-200">SpO₂</th>
+                          <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
+                          <th className="px-1 py-1 text-center font-medium border-r border-purple-200">PF</th>
+                          <th className="px-1 py-1 text-center font-medium border-r border-purple-200">SpO₂</th>
+                          <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
+                          <th className="px-1 py-1 text-center font-medium border-r border-indigo-200">PF</th>
+                          <th className="px-1 py-1 text-center font-medium border-r border-indigo-200">SpO₂</th>
+                          <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
+                          <th className="px-1 py-1 text-center font-medium border-r border-blue-200">PF</th>
+                          <th className="px-1 py-1 text-center font-medium border-r border-blue-200">SpO₂</th>
+                          <th className="px-1 py-1 text-center font-medium">Note</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {paginatedDates.map((dateKey) => {
+                          const dateEntries = entriesByDate[dateKey] || [];
+                          const morningBeforeEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'before');
+                          const morningAfterEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'after');
+                          const eveningBeforeEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'before');
+                          const eveningAfterEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'after');
 
-                  const renderCell = (entry: any) => {
-                    if (!entry) return <span className="text-gray-300">-</span>;
-                    return entry.peakFlowReadings.join('/');
-                  };
-                  
-                  const renderSpO2 = (entry: any) => {
-                    if (!entry) return <span className="text-gray-300">-</span>;
-                    return (
-                      <span className={`px-1 py-0.5 rounded text-xs font-bold ${
-                        entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {entry.spO2}
-                      </span>
-                    );
-                  };
-                  
-                  const renderNote = (entry: any) => {
-                    if (!entry?.note) return <span className="text-gray-300">-</span>;
-                    return (
+                          const renderCell = (entry: any) => {
+                            if (!entry) return <span className="text-gray-300">-</span>;
+                            return entry.peakFlowReadings?.join('/') || '-';
+                          };
+                          
+                          const renderSpO2 = (entry: any) => {
+                            if (!entry) return <span className="text-gray-300">-</span>;
+                            return (
+                              <span className={`px-1 py-0.5 rounded text-xs font-bold ${
+                                entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {entry.spO2}
+                              </span>
+                            );
+                          };
+                          
+                          const renderNote = (entry: any) => {
+                            if (!entry?.note) return <span className="text-gray-300">-</span>;
+                            return (
+                              <button
+                                onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
+                                className="text-gray-400 hover:text-blue-600 transition-colors"
+                              >
+                                <FileText size={12} />
+                              </button>
+                            );
+                          };
+
+                          return (
+                            <tr key={dateKey} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-2 py-2 whitespace-nowrap font-medium text-gray-700 border-r border-gray-200">
+                                {formatThaiDate(dateEntries[0].date)}
+                              </td>
+                              <td className="px-1 py-2 text-center border-r border-orange-200 bg-orange-50/20">{renderCell(morningBeforeEntry)}</td>
+                              <td className="px-1 py-2 text-center border-r border-orange-200 bg-orange-50/20">{renderSpO2(morningBeforeEntry)}</td>
+                              <td className="px-1 py-2 text-center border-r border-gray-200 bg-orange-50/20">{renderNote(morningBeforeEntry)}</td>
+                              <td className="px-1 py-2 text-center border-r border-purple-200 bg-purple-50/20">{renderCell(morningAfterEntry)}</td>
+                              <td className="px-1 py-2 text-center border-r border-purple-200 bg-purple-50/20">{renderSpO2(morningAfterEntry)}</td>
+                              <td className="px-1 py-2 text-center border-r border-gray-200 bg-purple-50/20">{renderNote(morningAfterEntry)}</td>
+                              <td className="px-1 py-2 text-center border-r border-indigo-200 bg-indigo-50/20">{renderCell(eveningBeforeEntry)}</td>
+                              <td className="px-1 py-2 text-center border-r border-indigo-200 bg-indigo-50/20">{renderSpO2(eveningBeforeEntry)}</td>
+                              <td className="px-1 py-2 text-center border-r border-gray-200 bg-indigo-50/20">{renderNote(eveningBeforeEntry)}</td>
+                              <td className="px-1 py-2 text-center border-r border-blue-200 bg-blue-50/20">{renderCell(eveningAfterEntry)}</td>
+                              <td className="px-1 py-2 text-center border-r border-blue-200 bg-blue-50/20">{renderSpO2(eveningAfterEntry)}</td>
+                              <td className="px-1 py-2 text-center bg-blue-50/20">{renderNote(eveningAfterEntry)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-4 mt-4">
                       <button
-                        onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
-                        className="text-gray-400 hover:text-blue-600 transition-colors"
-                        title="View note"
+                        onClick={() => setEntryPage((p) => Math.max(1, p - 1))}
+                        disabled={entryPage === 1}
+                        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
                       >
-                        <FileText size={12} />
+                        <ChevronLeft size={20} />
                       </button>
-                    );
-                  };
-
-                  return (
-                    <tr key={dateKey} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-2 py-2 whitespace-nowrap font-medium text-gray-700 border-r border-gray-200">
-                        {formatThaiDate(dateEntries[0].date)}
-                      </td>
-                      {/* Morning - Before Med: PF, SpO2, Note */}
-                      <td className="px-1 py-2 text-center border-r border-orange-200 bg-orange-50/20">
-                        {renderCell(morningBeforeEntry)}
-                      </td>
-                      <td className="px-1 py-2 text-center border-r border-orange-200 bg-orange-50/20">
-                        {renderSpO2(morningBeforeEntry)}
-                      </td>
-                      <td className="px-1 py-2 text-center border-r border-gray-200 bg-orange-50/20">
-                        {renderNote(morningBeforeEntry)}
-                      </td>
-                      {/* Morning - After Med: PF, SpO2, Note */}
-                      <td className="px-1 py-2 text-center border-r border-purple-200 bg-purple-50/20">
-                        {renderCell(morningAfterEntry)}
-                      </td>
-                      <td className="px-1 py-2 text-center border-r border-purple-200 bg-purple-50/20">
-                        {renderSpO2(morningAfterEntry)}
-                      </td>
-                      <td className="px-1 py-2 text-center border-r border-gray-200 bg-purple-50/20">
-                        {renderNote(morningAfterEntry)}
-                      </td>
-                      {/* Evening - Before Med: PF, SpO2, Note */}
-                      <td className="px-1 py-2 text-center border-r border-indigo-200 bg-indigo-50/20">
-                        {renderCell(eveningBeforeEntry)}
-                      </td>
-                      <td className="px-1 py-2 text-center border-r border-indigo-200 bg-indigo-50/20">
-                        {renderSpO2(eveningBeforeEntry)}
-                      </td>
-                      <td className="px-1 py-2 text-center border-r border-gray-200 bg-indigo-50/20">
-                        {renderNote(eveningBeforeEntry)}
-                      </td>
-                      {/* Evening - After Med: PF, SpO2, Note */}
-                      <td className="px-1 py-2 text-center border-r border-blue-200 bg-blue-50/20">
-                        {renderCell(eveningAfterEntry)}
-                      </td>
-                      <td className="px-1 py-2 text-center border-r border-blue-200 bg-blue-50/20">
-                        {renderSpO2(eveningAfterEntry)}
-                      </td>
-                      <td className="px-1 py-2 text-center bg-blue-50/20">
-                        {renderNote(eveningAfterEntry)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      <span className="text-sm font-medium text-gray-600">
+                        {entryPage} / {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setEntryPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={entryPage === totalPages}
+                        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                      >
+                        <ChevronLeft size={20} className="rotate-180" />
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
         {viewingNote && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -517,28 +550,6 @@ export default function AdminUserDetail() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-6">
-            <button
-              onClick={() => setEntryPage((p) => Math.max(1, p - 1))}
-              disabled={entryPage === 1}
-              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <span className="text-sm font-medium text-gray-600">
-              {entryPage} / {totalPages}
-            </span>
-            <button
-              onClick={() => setEntryPage((p) => Math.min(totalPages, p + 1))}
-              disabled={entryPage === totalPages}
-              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors"
-            >
-              <ChevronLeft size={20} className="rotate-180" />
-            </button>
           </div>
         )}
       </div>

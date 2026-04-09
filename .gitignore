@@ -1,6 +1,31 @@
 # Claude settings (may contain sensitive data)
 .claude/
 
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+frontend/dist/
+
+# Wrangler
+.wrangler/
+worker/.wrangler/
+frontend/.wrangler/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Lock files
 worker/package-lock.json
-worker/node_modules
-worker/.wrangler
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
