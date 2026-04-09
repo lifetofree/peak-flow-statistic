@@ -21,7 +21,6 @@ frontend/.wrangler/
 
 # Lock files
 worker/package-lock.json
-frontend/package-lock.json
 
 # IDE
 .idea/

@@ -4,7 +4,7 @@ compatibility_date = "2024-01-01"
 
 [vars]
 ENVIRONMENT = "production"
-CORS_ORIGIN = "https://peakflowstat.allergyclinic.cc"
+CORS_ORIGIN = "https://peakflowstat.allergyclinic.cc,https://main.peakflowstat.pages.dev"
 FRONTEND_URL = "https://peakflowstat.allergyclinic.cc"
 
 [[d1_databases]]

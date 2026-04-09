@@ -1,0 +1,45 @@
+# PeakFlowStat CI/CD Pipeline
+# Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in GitLab CI/CD variables
+
+stages:
+  - build
+  - deploy
+
+# Worker deployment
+deploy-worker:
+  stage: deploy
+  image: node:18-alpine
+  environment: production
+  url: https://api.peakflowstat.allergyclinic.cc
+  only:
+    - main
+  script:
+    - cd worker
+    - npm ci --prefer-offline
+    - npm run deploy
+
+# Frontend deployment to production branch
+deploy-frontend-production:
+  stage: deploy
+  image: node:18-alpine
+  environment: production
+  url: https://peakflowstat.allergyclinic.cc
+  only:
+    - main
+  script:
+    - cd frontend
+    - npm ci --prefer-offline
+    - npm run build
+    - npx wrangler pages deploy dist --project-name=peakflowstat --branch=production --commit-hash=$CI_COMMIT_SHA --commit-message="$CI_COMMIT_MESSAGE"
+
+# Frontend deployment to preview (all branches)
+deploy-frontend-preview:
+  stage: deploy
+  image: node:18-alpine
+  only:
+    - branches
+  script:
+    - cd frontend
+    - npm ci --prefer-offline
+    - npm run build
+    - npx wrangler pages deploy dist --project-name=peakflowstat --commit-hash=$CI_COMMIT_SHA --commit-message="$CI_COMMIT_MESSAGE"

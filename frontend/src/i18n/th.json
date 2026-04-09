@@ -37,7 +37,9 @@
     "notePlaceholder": "เขียนบันทึก...",
     "noNote": "ไม่มีบันทึก",
     "lastEntry": "บันทึกล่าสุด",
-    "close": "ปิด"
+    "close": "ปิด",
+    "from": "จากวันที่",
+    "to": "ถึงวันที่"
   },
   "zone": {
     "green": "ปกติ",
@@ -84,9 +86,9 @@
     "delete": "ลบ",
     "edit": "แก้ไข",
     "back": "กลับ",
+    "close": "ปิด",
     "notFound": "ไม่พบหน้าที่ต้องการ",
-    "invalidToken": "ลิงก์ไม่ถูกต้องหรือหมดอายุ",
-    "clear": "ล้าง"
+    "invalidToken": "ลิงก์ไม่ถูกต้องหรือหมดอายุ"
   },
   "chart": {
     "peakFlowTrend": "แนวโน้มค่าแรงเป่าลม",
@@ -94,12 +96,20 @@
     "days7": "7 วัน",
     "days30": "30 วัน",
     "days90": "90 วัน",
-    "all": "ทั้งหมด"
+    "all": "ทั้งหมด",
+    "filterByDate": "กรองตามวันที่"
   },
   "validation": {
     "peakFlowRange": "ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min",
     "spO2Range": "ค่า SpO2 ต้องอยู่ระหว่าง 70-100%",
     "futureDate": "ไม่สามารถเลือกวันที่ในอนาคต",
     "required": "กรุณากรอกข้อมูล"
+  },
+  "table": {
+    "morningBeforeMed": "เช้า - ก่อนใช้ยา",
+    "morningAfterMed": "เช้า - หลังใช้ยา",
+    "eveningBeforeMed": "เย็น - ก่อนใช้ยา",
+    "eveningAfterMed": "เย็น - หลังใช้ยา",
+    "pfUnit": "PF (L/min)"
   }
 }

@@ -23,29 +23,74 @@ PeakFlowStat is a **mobile-first** web application for asthma patients to track 
 
 ---
 
-## Current Project State (2026-04-07)
+## Notes
+
+- Authentication was intentionally removed for simplicity (open-access design)
+- Zone calculations and validation constants are duplicated across frontend/backend by design (no shared package)
+- `rotate-token` API endpoint still exists but the UI button has been removed
+- Do NOT use `www.peakflowstat.allergyclinic.cc` — third-level subdomains are not covered by Cloudflare Universal SSL
+- PF values use default color (no zone coloring) in both admin and user pages
+- L/min unit is shown in column header (PF (L/min)) not in cell values
+- Admin entries endpoint (`/api/admin/entries`) returns flat `Entry[]` — no zone field. Zone is not computed or returned for admin entries.
+- User entries endpoint (`/api/u/:token/entries`) returns `EntryWithZone[]` wrapped as `{ entry, zone }` — zone computed from personal best
+- Both endpoints support `?all=true` to bypass pagination and return all records in one response
+- `GET /api/admin/entries` supports `?from=` and `?to=` date range filters using ISO date strings
+- Note icon only shows when entry has a note
+- Empty cells in the pivot table render as empty (no "-" placeholder)
+
+---
+
+## Current Project State (2026-04-08)
 
 ### Web Title
-- **"Peak Flow Stat - Allergy Clinic"** (updated from "PeakFlowStatX")
+- **"Peak Flow Stat - Allergy Clinic"**
 
 ### User Dashboard
 - Card view (default) / Table view toggle
-- Table view expands to full width (`max-w-6xl`)
-- Peak flow displays all 3 values (e.g., "450 / 460 / 455 L/min") - not just best value
-- Peak flow and SpO2 values displayed as **regular text** (not bold)
+- **Card view**: 10 cards per page with pagination, shows `EntryWithZone[]` order as returned by API
+- **Table view**: Uses shared `PeakFlowTable` component. Entries fetched once with `?all=true`, unwrapped to flat `Entry[]` before passing to component.
+- Peak flow displays all 3 values (e.g., "450 / 460 / 455") — not just best value
+- PF column header shows "(L/min)" unit
+- PF and SpO2 values displayed as regular text (not bold, no zone color)
+- Note icon only shows when entry has a note
 
-### Admin User Detail Table Layout
-- **Header Row 1:** Date | Morning - Before Med | Morning - After Med | Evening - Before Med | Evening - After Med
-- **Header Row 2:** (under each period) PF | SpO₂ | Note
-- **Data rows:** Grouped by date, entries split by period AND medication timing
-- **Note column:** Shows 📄 icon, click to view full note in modal
-- **Empty cells:** Show "-" with light colored background
-- Each cell shows: PF/SpO₂ as separate columns
+### Admin User Detail
+- Entry table uses shared `PeakFlowTable` component. Entries fetched once with `?all=true`.
+- Deduplication and grouping handled inside `PeakFlowTable` (not in the page component)
+
+### PeakFlowTable Component (`frontend/src/components/PeakFlowTable.tsx`)
+- Shared pivot table used by both `UserDashboard` (table view) and `AdminUserDetail`
+- Accepts flat `Entry[]`
+- Internally deduplicates by `date-period-medicationTiming`, keeps latest by `createdAt`
+- Groups by date, sorts descending, paginates 20 dates/page
+- All headers use i18n: `t('entry.date')`, `t('table.morningBeforeMed')`, `t('table.morningAfterMed')`, `t('table.eveningBeforeMed')`, `t('table.eveningAfterMed')`, `t('table.pfUnit')`, `t('entry.spO2')`, `t('entry.note')`
+- Empty cells render `null` — no dash placeholder
+- Note modal managed internally with `ReactMarkdown` + `rehypeSanitize`
 
 ### Entry Grouping Logic
 - Entries grouped by `date-period-medicationTiming` combination
 - If multiple entries exist for same combination, **latest by createdAt** is kept
-- Example: 29/03/2569 morning/before has 2 entries → shows only the latest
+
+### Localization (`th.json`)
+- `common.close` = "ปิด"
+- `common.noData` = "ไม่มีข้อมูล"
+- `table.morningBeforeMed` = "เช้า - ก่อนใช้ยา"
+- `table.morningAfterMed` = "เช้า - หลังใช้ยา"
+- `table.eveningBeforeMed` = "เย็น - ก่อนใช้ยา"
+- `table.eveningAfterMed` = "เย็น - หลังใช้ยา"
+- `table.pfUnit` = "PF (L/min)"
+
+### Backend Validation Constants (`worker/src/routes/admin.ts`)
+- `PEAK_FLOW_MIN = 50`, `PEAK_FLOW_MAX = 900`
+- `SPO2_MIN = 70`, `PERSONAL_BEST_MIN = 50`
+- All peak flow reading values validated `int().min(50).max(900)` in both `createEntrySchema` and `updateEntrySchema`
+- Admin note validated `string().max(5000)` via Zod
+
+### DatabaseClient (`worker/src/lib/database.ts`)
+- `ALLOWED_TABLES`: `users`, `entries`, `audit_logs`
+- `ALLOWED_ORDER_COLUMNS`: comprehensive whitelist of valid column names
+- Supports `$gte`/`$lte` operator objects in filter values (used for date range queries)
+- All methods validate table name; `find()` validates `orderBy` column
 
 ---
 
@@ -61,6 +106,7 @@ PeakFlowStat/
 │   │   ├── components/
 │   │   │   ├── EntryCard.tsx
 │   │   │   ├── EntryForm.tsx
+│   │   │   ├── PeakFlowTable.tsx
 │   │   │   └── ShareLinkCard.tsx
 │   │   ├── i18n/
 │   │   │   └── th.json
@@ -161,8 +207,8 @@ updated_at TEXT
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/u/:token` | Get user profile |
-| `GET` | `/api/u/:token/entries` | Paginated entries (20/page) |
-| `POST` | `/api/u/:token/entries` | Create entry |
+| `GET` | `/api/u/:token/entries` | Paginated entries (20/page); `?all=true` returns all |
+| `POST` | `/api/u/:token/entries` | Create entry (PF readings validated 50–900) |
 | `GET` | `/api/u/:token/export` | CSV export |
 
 ### Admin Routes
@@ -174,8 +220,9 @@ updated_at TEXT
 | `GET` | `/api/admin/users/:id` | Get user details |
 | `PATCH` | `/api/admin/users/:id` | Update user |
 | `DELETE` | `/api/admin/users/:id` | Soft-delete user |
-| `PATCH` | `/api/admin/users/:id/note` | Update admin note |
-| `GET` | `/api/admin/entries` | All entries paginated |
+| `PATCH` | `/api/admin/users/:id/note` | Update admin note (Zod max 5000) |
+| `GET` | `/api/admin/entries` | Entries paginated; `?userId=`, `?from=`, `?to=`, `?all=true` |
+| `PATCH` | `/api/admin/entries/:id` | Update entry (PF readings validated 50–900) |
 | `DELETE` | `/api/admin/entries/:id` | Delete entry |
 | `GET` | `/api/admin/audit` | Audit log paginated |
 
@@ -244,20 +291,3 @@ for i in range(30):
 ```
 
 ---
-
-## Changelog
-
-| Date | Version | Change |
-|------|---------|--------|
-| 2026-04-07 | v32 | Admin user detail table: grouped by date, period, medication timing. Separate PF/SpO2/Note columns. Note shows 📄 icon, click for modal. |
-| 2026-04-07 | v31 | Added CORS_ORIGIN required check. Added console.warn to JSON.parse catch blocks. |
-| 2026-04-07 | v30 | Fixed getBestReading() null on empty array. Admin entries excludes soft-deleted users. Admin note Zod validation max 5000. |
-| 2026-04-07 | v29 | CSV filename sanitization. rehype-sanitize added to all ReactMarkdown usages. |
-| 2026-04-07 | v28 | Fixed N+1 query in admin users list using batch subquery. |
-| 2026-04-07 | v27 | Added $gte/$lte operators. peakFlowReadings validation fixed to array (not tuple). |
-| 2026-04-07 | v26 | TABLE_COLUMNS whitelist prevents SQL injection. |
-| 2026-04-07 | v25 | Flattened admin entries response. Added 20 sample users to D1. |
-| 2026-04-07 | v24 | Fixed VITE_API_URL missing /api. Removed duplicate wrangler.toml files. |
-| 2026-04-07 | v23 | Full Cloudflare redeployment. New D1, new domain peakflowstat.allergyclinic.cc |
-| 2026-04-07 | v22 | Fixed short link 404 - _redirects and absolute FRONTEND_URL |
-| 2026-04-07 | v21 | Deployed full-stack to Cloudflare |

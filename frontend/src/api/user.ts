@@ -8,10 +8,12 @@ export function fetchUserProfile(token: string): Promise<UserProfile> {
 export function fetchUserEntries(
   token: string,
   page: number,
+  all?: boolean,
   from?: string,
   to?: string
 ): Promise<{ entries: EntryWithZone[]; total: number; page: number; pageSize: number }> {
   const params = new URLSearchParams({ page: String(page) });
+  if (all) params.set('all', 'true');
   if (from) params.set('from', from);
   if (to) params.set('to', to);
   return apiFetch(`/u/${token}/entries?${params}`);
