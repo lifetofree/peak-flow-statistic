@@ -44,14 +44,13 @@ export default function AdminUserDetail() {
   const userQuery = useQuery({
     queryKey: ['adminUser', id],
     queryFn: () => fetchUser(id!),
-    enabled: !!id,
+    enabled: Boolean(id),
   });
 
   const entriesQuery = useQuery({
     queryKey: ['adminEntries', id, entryPage, dateFrom, dateTo],
     queryFn: () => fetchAdminEntries(entryPage, id, dateFrom || undefined, dateTo || undefined),
-    enabled: !!id,
-    placeholderData: (prev) => prev,
+    enabled: Boolean(id),
   });
 
   const updateMutation = useMutation({
