@@ -20,8 +20,8 @@ export async function apiFetch<T>(
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ' }));
-    throw new ApiError(res.status, body.error || 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ');
+    const body = await res.json().catch(() => ({ error: 'Unknown error' }));
+    throw new ApiError(res.status, body.error || 'Unknown error');
   }
 
   if (res.status === 204) return undefined as T;
