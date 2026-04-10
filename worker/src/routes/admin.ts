@@ -267,13 +267,14 @@ app.get('/admin/entries', async (c) => {
   const db = new DatabaseClient(c.env);
   const page = parseInt(c.req.query('page') || '1');
   const userId = c.req.query('userId');
-  const offset = (page - 1) * PAGE_SIZE;
+  const pageSize = c.req.query('pageSize') ? parseInt(c.req.query('pageSize')!) : PAGE_SIZE;
+  const offset = pageSize > 0 ? (page - 1) * pageSize : 0;
 
   let filter: Record<string, any> = {};
   if (userId) filter.user_id = userId;
 
   const [entries, total] = await Promise.all([
-    db.find<any>('entries', filter, { orderBy: 'date', order: 'DESC', limit: PAGE_SIZE, offset }),
+    db.find<any>('entries', filter, { orderBy: 'date', order: 'DESC', limit: pageSize > 0 ? pageSize : undefined, offset: pageSize > 0 ? offset : 0 }),
     db.count('entries', filter),
   ]);
 

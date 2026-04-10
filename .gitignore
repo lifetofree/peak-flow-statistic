@@ -1,22 +1,13 @@
 # Claude settings (may contain sensitive data)
 .claude/
 
-<<<<<<< HEAD
-# Node modules
-node_modules/
-worker/node_modules/
-frontend/node_modules/
-
-# Build outputs
-dist/
-build/
-=======
 # Dependencies
 node_modules/
 */node_modules/
 
 # Build outputs
 dist/
+build/
 frontend/dist/
 
 # Wrangler
@@ -24,13 +15,18 @@ frontend/dist/
 worker/.wrangler/
 frontend/.wrangler/
 
+# Local SQLite databases
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
 # Environment
 .env
 .env.local
 .env.*.local
-
-# Lock files
-worker/package-lock.json
+worker/.dev.vars
+worker/.env
+*.local
 
 # IDE
 .idea/
@@ -39,4 +35,3 @@ worker/package-lock.json
 # OS
 .DS_Store
 Thumbs.db
->>>>>>> origin/main

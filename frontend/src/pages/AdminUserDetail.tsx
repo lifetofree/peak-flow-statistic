@@ -3,12 +3,12 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
 import {
   ChevronLeft,
   Edit2,
   Trash2,
   FileDown,
-  FileText,
   Save,
   X,
   User as UserIcon,
@@ -17,12 +17,11 @@ import {
   Sun,
   Moon,
   Link2,
-  Eye,
+  FileText,
 } from 'lucide-react';
 import ShareLinkCard from '../components/ShareLinkCard';
-import { fetchUser, updateUser, updateNote, fetchAdminEntries, deleteUser, updateEntry } from '../api/admin';
+import { fetchUser, updateUser, updateNote, fetchAdminEntries, deleteUser } from '../api/admin';
 import { formatThaiDate } from '../utils/date';
-import { getBestReading } from '../utils/zone';
 
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
@@ -35,17 +34,10 @@ export default function AdminUserDetail() {
   const [form, setForm] = useState({ firstName: '', lastName: '', nickname: '', personalBest: '' });
   const [noteText, setNoteText] = useState('');
   const [entryPage, setEntryPage] = useState(1);
-  const [editingEntry, setEditingEntry] = useState<string | null>(null);
-  const [showNotePreview, setShowNotePreview] = useState(false);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
-  const [entryForm, setEntryForm] = useState({
-    date: '',
-    peakFlowReadings: ['', '', ''] as [string, string, string],
-    spO2: '',
-    medicationTiming: 'before' as 'before' | 'after',
-    period: 'morning' as 'morning' | 'evening',
-    note: '',
-  });
+  const daysPerPage = 20;
+  const entriesPerPage = daysPerPage * 4; // 4 entries per day (morning/evening x before/after)
+
   const userQuery = useQuery({
     queryKey: ['adminUser', id],
     queryFn: () => fetchUser(id!),
@@ -54,8 +46,8 @@ export default function AdminUserDetail() {
 
   const entriesQuery = useQuery({
     queryKey: ['adminEntries', id, entryPage],
-    queryFn: () => fetchAdminEntries(entryPage, id),
-    enabled: !!id,
+    queryFn: () => fetchAdminEntries(entryPage, id, 0), // 0 = fetch all entries
+    enabled: Boolean(id),
   });
 
   const updateMutation = useMutation({
@@ -90,34 +82,6 @@ export default function AdminUserDetail() {
       navigate('/admin');
     },
   });
-
-  const updateEntryMutation = useMutation({
-    mutationFn: ({ entryId, data }: { entryId: string; data: any }) =>
-      updateEntry(entryId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminEntries', id] });
-      setEditingEntry(null);
-      setShowNotePreview(false);
-    },
-    onError: (error: any) => {
-      alert(error.message || t('common.error'));
-    },
-  });
-
-  const handleSaveEntry = () => {
-    if (!editingEntry) return;
-    updateEntryMutation.mutate({
-      entryId: editingEntry,
-      data: {
-        date: new Date(entryForm.date).toISOString(),
-        peakFlowReadings: entryForm.peakFlowReadings.map(Number) as [number, number, number],
-        spO2: Number(entryForm.spO2),
-        medicationTiming: entryForm.medicationTiming,
-        period: entryForm.period,
-        note: entryForm.note,
-      },
-    });
-  };
 
   const handleExport = async () => {
     try {
@@ -179,9 +143,48 @@ export default function AdminUserDetail() {
     );
   }
 
-  const totalPages = entriesQuery.data
-    ? Math.ceil(entriesQuery.data.total / entriesQuery.data.pageSize)
-    : 0;
+  // Group entries by date and get latest entry for each period+medication combination
+  const allEntries = entriesQuery.data?.entries ?? [];
+  
+  // Create a map for each date with the latest entry for each period/medication combination
+  const latestEntriesByDate: Record<string, any> = {};
+  
+  allEntries.forEach((entry: any) => {
+    const dateKey = entry.date.split('T')[0];
+    const periodKey = entry.period;
+    const medKey = entry.medicationTiming;
+    const subKey = `${periodKey}-${medKey}`;
+    
+    if (!latestEntriesByDate[dateKey]) {
+      latestEntriesByDate[dateKey] = {};
+    }
+    
+    // Keep the latest entry for this combination
+    if (!latestEntriesByDate[dateKey][subKey] || 
+        new Date(entry.createdAt) > new Date(latestEntriesByDate[dateKey][subKey]?.createdAt || 0)) {
+      latestEntriesByDate[dateKey][subKey] = entry;
+    }
+  });
+  
+  // Convert to array format for table rendering
+  const entriesByDate: Record<string, any[]> = {};
+  Object.keys(latestEntriesByDate).forEach((date) => {
+    entriesByDate[date] = [
+      latestEntriesByDate[date]['morning-before'],
+      latestEntriesByDate[date]['morning-after'],
+      latestEntriesByDate[date]['evening-before'],
+      latestEntriesByDate[date]['evening-after'],
+    ].filter(Boolean);
+  });
+
+  // Sort dates descending (newest first)
+  const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  
+  const totalDays = sortedDates.length;
+  const totalPages = Math.ceil(totalDays / daysPerPage);
+  const startIdx = (entryPage - 1) * daysPerPage;
+  const endIdx = startIdx + daysPerPage;
+  const paginatedDates = sortedDates.slice(startIdx, endIdx);
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
@@ -346,7 +349,7 @@ export default function AdminUserDetail() {
         ) : (
           <div className="prose prose-sm max-w-none bg-gray-50 p-4 rounded-xl border border-dashed">
             {user.adminNote ? (
-              <ReactMarkdown>{user.adminNote}</ReactMarkdown>
+              <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{user.adminNote}</ReactMarkdown>
             ) : (
               <p className="text-gray-400 italic">{t('common.noData')}</p>
             )}
@@ -359,254 +362,157 @@ export default function AdminUserDetail() {
           <History size={20} className="text-purple-600" />
           {t('admin.entries')}
         </h3>
+
         {entriesQuery.isLoading ? (
           <div className="flex justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
-        ) : !entriesQuery.data || entriesQuery.data.entries.length === 0 ? (
+        ) : !entriesQuery.data || Object.keys(entriesByDate).length === 0 ? (
           <div className="text-center py-8 text-gray-500 italic border rounded-xl border-dashed">
             {t('entry.noEntries')}
           </div>
         ) : (() => {
-            // Group entries by date
-            const entriesList = entriesQuery.data?.entries || [];
-            const entriesByDate: Record<string, typeof entriesList> = {};
-            for (const entry of entriesList) {
-              const dateKey = entry.date.split('T')[0] || '';
-              if (!entriesByDate[dateKey]) entriesByDate[dateKey] = [];
-              entriesByDate[dateKey]!.push(entry);
-            }
-
-            const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-
-            return (
-              <div className="overflow-x-auto border rounded-xl">
-                <table className="w-full text-xs">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-2 py-2 font-semibold text-gray-600 border-r">Date</th>
-                      <th className="px-2 py-2 text-center text-orange-600 font-bold border-r bg-orange-50">
-                        <div className="flex items-center justify-center gap-1">
-                          <Sun size={12} />
-                          <span>Morning Before</span>
-                        </div>
-                      </th>
-                      <th className="px-2 py-2 text-center text-orange-600 font-bold border-r bg-orange-50/50">
-                        <div className="flex items-center justify-center gap-1">
-                          <Sun size={12} />
-                          <span>Morning After</span>
-                        </div>
-                      </th>
-                      <th className="px-2 py-2 text-center text-indigo-600 font-bold border-r bg-indigo-50">
-                        <div className="flex items-center justify-center gap-1">
-                          <Moon size={12} />
-                          <span>Evening Before</span>
-                        </div>
-                      </th>
-                      <th className="px-2 py-2 text-center text-indigo-600 font-bold bg-indigo-50/50">
-                        <div className="flex items-center justify-center gap-1">
-                          <Moon size={12} />
-                          <span>Evening After</span>
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {sortedDates.map((dateKey) => {
-                      const dayEntries = entriesByDate[dateKey] || [];
-                      const morningBefore = dayEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'before');
-                      const morningAfter = dayEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'after');
-                      const eveningBefore = dayEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'before');
-                      const eveningAfter = dayEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'after');
-
-                      const renderCell = (entry: any) => {
-                        if (!entry) return <span className="text-gray-300">-</span>;
-                        return (
-                          <div className="flex flex-col items-center gap-1">
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium">{getBestReading(entry.peakFlowReadings)}</span>
-                              <span className="text-xs text-gray-400">({entry.peakFlowReadings.join('/')})</span>
+              const totalDates = entriesQuery.data.total;
+              if (totalDates === 0) return null;
+              
+              const totalPages = Math.ceil(totalDates / entriesPerPage);
+              const startIdx = (entryPage - 1) * entriesPerPage;
+              const endIdx = startIdx + entriesPerPage;
+              const paginatedDates = sortedDates.slice(startIdx, endIdx);
+              
+              return (
+                <>
+                  <div className="overflow-x-auto border rounded-xl">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50 border-b">
+                        <tr>
+                          <th className="px-2 py-2 font-semibold text-gray-600 border-r border-gray-300" rowSpan={2}>Date</th>
+                          <th className="px-2 py-2 text-center text-orange-600 font-bold border-r border-orange-200" colSpan={3}>
+                            <div className="flex items-center justify-center gap-1">
+                              <Sun className="text-orange-500" size={12} />
+                              <span>Morning - Before Med</span>
                             </div>
-                            <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
-                              entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                            }`}>
-                              {entry.spO2}%
-                            </span>
-                            {entry.note && (
+                          </th>
+                          <th className="px-2 py-2 text-center text-orange-600 font-bold border-r border-orange-200" colSpan={3}>
+                            <div className="flex items-center justify-center gap-1">
+                              <Sun className="text-orange-500" size={12} />
+                              <span>Morning - After Med</span>
+                            </div>
+                          </th>
+                          <th className="px-2 py-2 text-center text-indigo-600 font-bold border-r border-indigo-200" colSpan={3}>
+                            <div className="flex items-center justify-center gap-1">
+                              <Moon className="text-indigo-600" size={12} />
+                              <span>Evening - Before Med</span>
+                            </div>
+                          </th>
+                          <th className="px-2 py-2 text-center text-indigo-600 font-bold" colSpan={3}>
+                            <div className="flex items-center justify-center gap-1">
+                              <Moon className="text-indigo-600" size={12} />
+                              <span>Evening - After Med</span>
+                            </div>
+                          </th>
+                        </tr>
+                        <tr>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">PF(L/Min)</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">SpO2</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">Note</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">PF(L/Min)</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">SpO2</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">Note</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">PF(L/Min)</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">SpO2</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">Note</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">PF(L/Min)</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">SpO2</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 bg-indigo-50/10">Note</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {paginatedDates.map((dateKey) => {
+                          const dateEntries = entriesByDate[dateKey] || [];
+                          const morningBeforeEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'before');
+                          const morningAfterEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'after');
+                          const eveningBeforeEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'before');
+                          const eveningAfterEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'after');
+
+                          const renderPFCell = (entry: any) => {
+                            if (!entry) return <span className="text-gray-300">-</span>;
+                            return <span className="text-xs">{entry.peakFlowReadings?.join('/') || '-'}</span>;
+                          };
+
+                          const renderSpO2Cell = (entry: any) => {
+                            if (!entry) return <span className="text-gray-300">-</span>;
+                            return (
+                              <span className={`px-1 py-0.5 rounded text-xs font-bold ${
+                                entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {entry.spO2}
+                              </span>
+                            );
+                          };
+
+                          const renderNoteCell = (entry: any, date: string) => {
+                            if (!entry || !entry.note) return <span className="text-gray-300">-</span>;
+                            return (
                               <button
-                                onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
-                                className="text-blue-600 hover:text-blue-800"
+                                onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(date) })}
+                                className="text-blue-500 hover:text-blue-700 transition-colors"
                               >
                                 <FileText size={12} />
                               </button>
-                            )}
-                          </div>
-                        );
-                      };
+                            );
+                          };
 
-                      return (
-                        <tr key={dateKey} className="hover:bg-gray-50">
-                          <td className="px-2 py-2 font-medium text-gray-700 border-r whitespace-nowrap">
-                            {formatThaiDate(dateKey)}
-                          </td>
-                          <td className="px-2 py-2 text-center border-r bg-orange-50/30">{renderCell(morningBefore)}</td>
-                          <td className="px-2 py-2 text-center border-r bg-orange-50/10">{renderCell(morningAfter)}</td>
-                          <td className="px-2 py-2 text-center border-r bg-indigo-50/30">{renderCell(eveningBefore)}</td>
-                          <td className="px-2 py-2 text-center bg-indigo-50/10">{renderCell(eveningAfter)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            );
-          })()}
+                          const displayDate = morningBeforeEntry?.date || morningAfterEntry?.date || eveningBeforeEntry?.date || eveningAfterEntry?.date || dateKey;
 
-        {editingEntry && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-xl border space-y-3">
-            <h4 className="font-semibold text-gray-700">{t('admin.editEntry') || 'Edit Entry'}</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.date')}</label>
-                <input
-                  type="date"
-                  value={entryForm.date}
-                  onChange={(e) => setEntryForm({ ...entryForm, date: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.period')}</label>
-                <div className="flex bg-white border rounded-lg overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setEntryForm({ ...entryForm, period: 'morning' })}
-                    className={`flex-1 py-2 text-xs font-medium ${
-                      entryForm.period === 'morning' ? 'bg-blue-100 text-blue-700' : 'text-gray-500'
-                    }`}
-                  >
-                    {t('entry.morning')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEntryForm({ ...entryForm, period: 'evening' })}
-                    className={`flex-1 py-2 text-xs font-medium ${
-                      entryForm.period === 'evening' ? 'bg-blue-100 text-blue-700' : 'text-gray-500'
-                    }`}
-                  >
-                    {t('entry.evening')}
-                  </button>
-                </div>
-              </div>
-              <div className="col-span-2">
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.peakFlow')} (L/min)</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[0, 1, 2].map((i) => (
-                    <input
-                      key={i}
-                      type="number"
-                      value={entryForm.peakFlowReadings[i]}
-                      onChange={(e) => {
-                        const newReadings = [...entryForm.peakFlowReadings] as [string, string, string];
-                        newReadings[i] = e.target.value;
-                        setEntryForm({ ...entryForm, peakFlowReadings: newReadings });
-                      }}
-                      className="border rounded-lg px-3 py-2 text-sm"
-                      placeholder={`${t('entry.reading', { number: i + 1 })}`}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.spO2')} (%)</label>
-                <input
-                  type="number"
-                  value={entryForm.spO2}
-                  onChange={(e) => setEntryForm({ ...entryForm, spO2: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t('entry.medicationTiming')}</label>
-                <div className="flex bg-white border rounded-lg overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setEntryForm({ ...entryForm, medicationTiming: 'before' })}
-                    className={`flex-1 py-2 text-xs font-medium ${
-                      entryForm.medicationTiming === 'before' ? 'bg-blue-100 text-blue-700' : 'text-gray-500'
-                    }`}
-                  >
-                    {t('entry.before')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEntryForm({ ...entryForm, medicationTiming: 'after' })}
-                    className={`flex-1 py-2 text-xs font-medium ${
-                      entryForm.medicationTiming === 'after' ? 'bg-blue-100 text-blue-700' : 'text-gray-500'
-                    }`}
-                  >
-                    {t('entry.after')}
-                  </button>
-                </div>
-              </div>
-              <div className="col-span-2">
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-xs text-gray-500">{t('entry.note')}</label>
-                  <button
-                    type="button"
-                    onClick={() => setShowNotePreview(!showNotePreview)}
-                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                  >
-                    {showNotePreview ? (
-                      <>
-                        <Edit2 size={12} />
-                        {t('entry.editNote')}
-                      </>
-                    ) : (
-                      <>
-                        <Eye size={12} />
-                        {t('entry.previewNote')}
-                      </>
-                    )}
-                  </button>
-                </div>
-                {showNotePreview ? (
-                  <div className="border rounded-lg px-3 py-2 min-h-[60px] bg-gray-50 prose prose-sm max-w-none">
-                    {entryForm.note ? (
-                      <ReactMarkdown>{entryForm.note}</ReactMarkdown>
-                    ) : (
-                      <p className="text-gray-400 italic">{t('entry.noNote')}</p>
-                    )}
+                          return (
+                            <tr key={dateKey} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-2 py-2 whitespace-nowrap font-medium text-gray-700 border-r border-gray-200">
+                                {formatThaiDate(displayDate)}
+                              </td>
+                              <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderPFCell(morningBeforeEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderSpO2Cell(morningBeforeEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-orange-200 bg-orange-50/10">{renderNoteCell(morningBeforeEntry, displayDate)}</td>
+                              <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderPFCell(morningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderSpO2Cell(morningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-purple-200 bg-purple-50/10">{renderNoteCell(morningAfterEntry, displayDate)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderPFCell(eveningBeforeEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderSpO2Cell(eveningBeforeEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-200 bg-indigo-50/10">{renderNoteCell(eveningBeforeEntry, displayDate)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderPFCell(eveningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderSpO2Cell(eveningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center bg-blue-50/10">{renderNoteCell(eveningAfterEntry, displayDate)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                ) : (
-                  <textarea
-                    value={entryForm.note}
-                    onChange={(e) => setEntryForm({ ...entryForm, note: e.target.value })}
-                    rows={2}
-                    placeholder={t('entry.notePlaceholder')}
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
-                  />
-                )}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleSaveEntry}
-                disabled={updateEntryMutation.isPending}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Save size={14} />
-                {updateEntryMutation.isPending ? t('common.loading') : t('common.save')}
-              </button>
-              <button
-                onClick={() => { setEditingEntry(null); setShowNotePreview(false); }}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200"
-              >
-                {t('common.cancel')}
-              </button>
-            </div>
-          </div>
-        )}
+
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-4 mt-4">
+                      <button
+                        onClick={() => setEntryPage((p) => Math.max(1, p - 1))}
+                        disabled={entryPage === 1}
+                        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <span className="text-sm font-medium text-gray-600">
+                        {entryPage} / {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setEntryPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={entryPage === totalPages}
+                        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                      >
+                        <ChevronLeft size={20} className="rotate-180" />
+                      </button>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
         {viewingNote && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -621,7 +527,7 @@ export default function AdminUserDetail() {
                 </button>
               </div>
               <div className="p-4 prose prose-sm max-w-none">
-                <ReactMarkdown>{viewingNote.note}</ReactMarkdown>
+                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{viewingNote.note}</ReactMarkdown>
               </div>
               <div className="p-4 border-t">
                 <button
@@ -632,28 +538,6 @@ export default function AdminUserDetail() {
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-6">
-            <button
-              onClick={() => setEntryPage((p) => Math.max(1, p - 1))}
-              disabled={entryPage === 1}
-              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <span className="text-sm font-medium text-gray-600">
-              {entryPage} / {totalPages}
-            </span>
-            <button
-              onClick={() => setEntryPage((p) => Math.min(totalPages, p + 1))}
-              disabled={entryPage === totalPages}
-              className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-colors"
-            >
-              <ChevronLeft size={20} className="rotate-180" />
-            </button>
           </div>
         )}
       </div>

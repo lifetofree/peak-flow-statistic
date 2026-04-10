@@ -1,7 +1,7 @@
 {
   "app": {
-    "title": "PeakFlowStat",
-    "subtitle": "ระบบติดตามค่าแรงเป่าลม"
+    "title": "PeakFlowStat - The Allergy Clinic",
+    "subtitle": "ระบบติดตาม Peak Flow และ SpO₂ สำหรับผู้ป่วยโรคหืด"
   },
   "nav": {
     "dashboard": "แดชบอร์ด",
@@ -18,12 +18,12 @@
   },
   "entry": {
     "date": "วันที่",
-    "peakFlow": "ค่าแรงเป่าลม",
+    "peakFlow": "Peak Flow",
     "reading": "ครั้งที่ {{number}}",
-    "spO2": "ระดับออกซิเจนในเลือด",
+    "spO2": "SpO₂",
     "medicationTiming": "การใช้ยา",
-    "before": "ก่อนใช้ยา",
-    "after": "หลังใช้ยา",
+    "before": "ก่อนพ่นยา",
+    "after": "หลังพ่นยา",
     "period": "ช่วงเวลา",
     "morning": "เช้า",
     "evening": "เย็น",
@@ -34,7 +34,7 @@
     "showLess": "ซ่อน",
     "previewNote": "ดูตัวอย่าง",
     "editNote": "แก้ไข",
-    "notePlaceholder": "เขียนบันทึก... (รองรับ Markdown)",
+    "notePlaceholder": "เขียนบันทึก...",
     "noNote": "ไม่มีบันทึก",
     "lastEntry": "บันทึกล่าสุด",
     "close": "ปิด",
@@ -48,7 +48,7 @@
     "noPersonalBest": "ยังไม่ได้ตั้งค่า Personal Base กรุณาติดต่อแพทย์"
   },
   "admin": {
-    "title": "แผงควบคุมแอดมิน",
+    "title": "ระูบบการจัดการผู้ใช้และข้อมูล",
     "users": "ผู้ใช้",
     "entries": "ข้อมูล",
     "auditLog": "ประวัติการแก้ไข",
@@ -100,16 +100,16 @@
     "filterByDate": "กรองตามวันที่"
   },
   "validation": {
-    "peakFlowRange": "ค่าแรงเป่าลมต้องอยู่ระหว่าง 50-900 L/min",
-    "spO2Range": "ค่า SpO2 ต้องอยู่ระหว่าง 70-100%",
+    "peakFlowRange": "Peak Flow ต้องอยู่ระหว่าง 50-900 L/min",
+    "spO2Range": "ค่า SpO₂ ต้องอยู่ระหว่าง 70-100%",
     "futureDate": "ไม่สามารถเลือกวันที่ในอนาคต",
     "required": "กรุณากรอกข้อมูล"
   },
   "table": {
-    "morningBeforeMed": "เช้า - ก่อนใช้ยา",
-    "morningAfterMed": "เช้า - หลังใช้ยา",
-    "eveningBeforeMed": "เย็น - ก่อนใช้ยา",
-    "eveningAfterMed": "เย็น - หลังใช้ยา",
+    "morningBeforeMed": "เช้า - ก่อนพ่นยา",
+    "morningAfterMed": "เช้า - หลังพ่นยา",
+    "eveningBeforeMed": "เย็น - ก่อนพ่นยา",
+    "eveningAfterMed": "เย็น - หลังพ่นยา",
     "pfUnit": "PF (L/min)"
   }
 }

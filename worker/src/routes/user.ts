@@ -38,14 +38,14 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
   const userId = c.get('userId');
   const user = c.get('user');
   const page = parseInt(c.req.query('page') || '1');
-  const from = c.req.query('from');
-  const to = c.req.query('to');
-  const offset = (page - 1) * PAGE_SIZE;
+  const pageSizeParam = c.req.query('pageSize');
+  const pageSize = pageSizeParam ? parseInt(pageSizeParam) : 0; // 0 means fetch all
+  const offset = pageSize > 0 ? (page - 1) * pageSize : 0;
 
   let filter: Record<string, any> = { user_id: userId };
 
   const [entries, total] = await Promise.all([
-    db.find<any>('entries', filter, { orderBy: 'date', order: 'DESC', limit: PAGE_SIZE, offset }),
+    db.find<any>('entries', filter, { orderBy: 'date', order: 'DESC', limit: pageSize > 0 ? pageSize : undefined, offset: pageSize > 0 ? offset : 0 }),
     db.count('entries', filter),
   ]);
 

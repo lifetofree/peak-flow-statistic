@@ -5,13 +5,9 @@ import { formatThaiDate } from '../utils/date';
 import { getBestReading } from '../utils/zone';
 import type { EntryWithZone } from '../types';
 
-interface EntryCardProps {
-  data: EntryWithZone;
-}
-
 const NOTE_PREVIEW_LENGTH = 60;
 
-export default function EntryCard({ data }: EntryCardProps) {
+export default function EntryCard({ data }: { data: EntryWithZone }) {
   const { t } = useTranslation();
   const { entry } = data;
   const best = getBestReading(entry.peakFlowReadings);
@@ -32,30 +28,30 @@ export default function EntryCard({ data }: EntryCardProps) {
           )}
           <span className="text-sm text-gray-500">
             {formatThaiDate(entry.date)}
-            <span className="ml-2 font-medium uppercase text-xs">
-              {t(`entry.${entry.period}`)}
+            <span className="ml-2 font-medium text-xs uppercase">
+              {entry.period === 'morning' ? t('entry.morning') : t('entry.evening')}
             </span>
           </span>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2 text-sm">
+      <div className="grid grid-cols-3 gap-2 text-sm">
         <div>
-          <span className="text-gray-500">{t('entry.peakFlow')}:</span>{' '}
-          <span className="font-semibold">{best} L/min</span>
+          <span className="text-gray-500">{t('entry.peakFlow')}: </span>
+          <span className="font-semibold">{entry.peakFlowReadings.join(' / ')} L/min</span>
         </div>
         <div>
-          <span className="text-gray-500">{t('entry.spO2')}:</span>{' '}
+          <span className="text-gray-500">{t('entry.spO2')}: </span>
           <span className={`font-semibold ${entry.spO2 < 95 ? 'text-red-600' : ''}`}>
             {entry.spO2}%
           </span>
         </div>
         <div>
-          <span className="text-gray-500">{t('entry.medicationTiming')}:</span>{' '}
+          <span className="text-gray-500">{t('entry.medicationTiming')}: </span>
           <span>{t(`entry.${entry.medicationTiming}`)}</span>
         </div>
       </div>
-      <div className="text-xs text-gray-400 mt-2">
-        {entry.peakFlowReadings.join(' / ')} L/min
+      <div className="text-xs text-gray-400 mt-1">
+        Best: {best} L/min
       </div>
       {entry.note && (
         <div className="mt-2 border-t pt-2">
@@ -70,12 +66,12 @@ export default function EntryCard({ data }: EntryCardProps) {
               {showFullNote ? (
                 <>
                   <ChevronUp size={12} />
-                  {t('entry.showLess')}
+                  Show less
                 </>
               ) : (
                 <>
                   <ChevronDown size={12} />
-                  {t('entry.showMore')}
+                  Show more
                 </>
               )}
             </button>

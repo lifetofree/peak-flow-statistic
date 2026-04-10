@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const UserDashboard = lazy(() => import('./pages/UserDashboard'));
@@ -28,10 +28,16 @@ function NotFound() {
 }
 
 export default function App() {
+  const { t } = useTranslation();
+  
+  useEffect(() => {
+    document.title = t('common.title');
+  }, [t]);
+  
   return (
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
-<Route path="/" element={<Navigate to="/admin" replace />} />
+        <Route path="/" element={<Navigate to="/admin" replace />} />
         <Route path="/u/:token" element={<UserDashboard />} />
         <Route path="/u/:token/new" element={<NewEntry />} />
         <Route path="/u/:token/entries" element={<EntryHistory />} />
