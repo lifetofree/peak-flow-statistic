@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
 import { Eye, Edit2 } from 'lucide-react';
 import { toISODateString } from '../utils/date';
 import { PEAK_FLOW_MIN, PEAK_FLOW_MAX, SPO2_MIN, SPO2_MAX } from '../constants/validation';
@@ -217,7 +216,7 @@ export default function EntryForm({ onSubmit, isLoading }: EntryFormProps) {
         {showNotePreview ? (
           <div className="border rounded-lg px-3 py-2 min-h-[72px] bg-gray-50 prose prose-sm max-w-none">
             {note ? (
-              <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{note}</ReactMarkdown>
+              <ReactMarkdown>{note}</ReactMarkdown>
             ) : (
               <p className="text-gray-400 italic">{t('entry.noNote')}</p>
             )}

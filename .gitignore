@@ -1,4 +1,11 @@
 # Claude settings (may contain sensitive data)
 .claude/
 
-worker/package-lock.json
+# Node modules
+node_modules/
+worker/node_modules/
+frontend/node_modules/
+
+# Build outputs
+dist/
+build/

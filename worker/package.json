@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --config wrangler.dev.toml",
     "deploy": "wrangler deploy",
+    "deploy:dev": "wrangler deploy --config wrangler.dev.toml",
+    "deploy:staging": "wrangler deploy --config wrangler.staging.toml",
     "build": "esbuild src/index.ts --bundle --platform=neutral --format=esm --outfile=dist/index.js"
   },
   "dependencies": {

@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
 import { Search, Plus, User as UserIcon, Activity, ClipboardList, Copy, Check, Eye, Edit2 } from 'lucide-react';
 import { fetchUsers, createUser } from '../api/admin';
-import { formatThaiDateTime } from '../utils/date';
+import { formatThaiDate } from '../utils/date';
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
@@ -17,7 +16,6 @@ export default function AdminDashboard() {
   const [showAdminNotePreview, setShowAdminNotePreview] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', nickname: '', personalBest: '', adminNote: '' });
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const navigate = useNavigate();
 
   const handleCopyLink = (shortCode: string, userId: string) => {
     const url = `${window.location.origin}/s/${shortCode}`;
@@ -29,7 +27,12 @@ export default function AdminDashboard() {
 
   const usersQuery = useQuery({
     queryKey: ['adminUsers', page, search],
-    queryFn: () => fetchUsers(page, search || undefined),
+    queryFn: async () => {
+      console.log('Fetching users...');
+      const result = await fetchUsers(page, search || undefined);
+      console.log('Users fetched:', result);
+      return result;
+    },
   });
 
   const createMutation = useMutation({
@@ -47,9 +50,33 @@ export default function AdminDashboard() {
       setShowAdminNotePreview(false);
       setForm({ firstName: '', lastName: '', nickname: '', personalBest: '', adminNote: '' });
     },
+    onError: (error) => {
+      console.error('Create user error:', error);
+    },
   });
 
   const totalPages = usersQuery.data ? Math.ceil(usersQuery.data.total / usersQuery.data.pageSize) : 0;
+
+  if (usersQuery.isLoading) {
+    return (
+      <div className="min-h-screen p-4 max-w-4xl mx-auto">
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (usersQuery.isError) {
+    return (
+      <div className="min-h-screen p-4 max-w-4xl mx-auto">
+        <div className="text-center py-8">
+          <p className="text-red-500 mb-2">{t('common.error')}</p>
+          <p className="text-gray-500 text-sm">{String(usersQuery.error)}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto">
@@ -144,7 +171,7 @@ export default function AdminDashboard() {
             {showAdminNotePreview ? (
               <div className="border rounded-lg px-3 py-2 min-h-[72px] bg-gray-50 prose prose-sm max-w-none">
                 {form.adminNote ? (
-                  <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{form.adminNote}</ReactMarkdown>
+                  <ReactMarkdown>{form.adminNote}</ReactMarkdown>
                 ) : (
                   <p className="text-gray-400 italic">{t('entry.noNote')}</p>
                 )}
@@ -181,91 +208,77 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {usersQuery.isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : usersQuery.isError ? (
-        <div className="text-center py-8">
-          <p className="text-red-500 mb-2">{t('common.error')}</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">{t('admin.users')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">
+                {t('admin.personalBest')}
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">
+                {t('entry.lastEntry') || 'Last Entry'}
+              </th>
+              <th className="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {!usersQuery.data?.users || usersQuery.data.users.length === 0 ? (
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">{t('admin.users')}</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">
-                  {t('admin.personalBest')}
-                </th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">
-                  {t('entry.lastEntry') || 'Last Entry'}
-                </th>
-                <th className="px-4 py-3"></th>
+                <td colSpan={4} className="px-4 py-8 text-center text-gray-500 italic">
+                  {t('common.noData')}
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y">
-              {usersQuery.data?.users.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-500 italic">
-                    {t('common.noData')}
+            ) : (
+              usersQuery.data.users.map((user) => (
+                <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <Link
+                      to={`/admin/users/${user._id}`}
+                      className="font-medium text-blue-600 hover:underline flex items-center gap-2"
+                    >
+                      <UserIcon size={16} className="text-gray-400" />
+                      {user.firstName} {user.lastName}
+                    </Link>
+                    <p className="text-xs text-gray-500 ml-6">({user.nickname})</p>
+                  </td>
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    {user.personalBest ? (
+                      <span className="bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-medium">
+                        {user.personalBest} L/min
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    {user.lastEntryDate ? (
+                      <span className="text-xs text-gray-600">
+                        {formatThaiDate(user.lastEntryDate)}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => handleCopyLink(user.shortCode, user._id)}
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        copiedId === user._id
+                          ? 'bg-green-600 text-white border-green-600'
+                          : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      {copiedId === user._id ? <Check size={12} /> : <Copy size={12} />}
+                      {copiedId === user._id ? t('admin.linkCopied') : t('admin.copyLink')}
+                    </button>
                   </td>
                 </tr>
-              ) : (
-                usersQuery.data?.users.map((user) => (
-                  <tr 
-                    key={user._id} 
-                    className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/admin/users/${user._id}`)}
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        to={`/admin/users/${user._id}`}
-                        className="font-medium text-blue-600 hover:underline flex items-center gap-2"
-                      >
-                        <UserIcon size={16} className="text-gray-400" />
-                        {user.firstName} {user.lastName}
-                      </Link>
-                      <p className="text-xs text-gray-500 ml-6">({user.nickname})</p>
-                    </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
-                      {user.personalBest ? (
-                        <span className="bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-medium">
-                          {user.personalBest} L/min
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      {user.lastEntryDate ? (
-                        <span className="text-xs text-gray-600">
-                          {formatThaiDateTime(user.lastEntryDate)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-xs">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => handleCopyLink(user.shortCode, user._id)}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                          copiedId === user._id
-                            ? 'bg-green-600 text-white border-green-600'
-                            : 'bg-white text-gray-600 hover:bg-gray-50 border-gray-200'
-                        }`}
-                      >
-                        {copiedId === user._id ? <Check size={12} /> : <Copy size={12} />}
-                        {copiedId === user._id ? t('admin.linkCopied') : t('admin.copyLink')}
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-6">

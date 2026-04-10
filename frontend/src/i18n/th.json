@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Peak Flow Stat - Allergy Clinic",
+    "title": "PeakFlowStat",
     "subtitle": "ระบบติดตามค่าแรงเป่าลม"
   },
   "nav": {
@@ -20,8 +20,8 @@
     "date": "วันที่",
     "peakFlow": "ค่าแรงเป่าลม",
     "reading": "ครั้งที่ {{number}}",
-    "spO2": "SpO₂",
-    "medicationTiming": "เวลา",
+    "spO2": "ระดับออกซิเจนในเลือด",
+    "medicationTiming": "การใช้ยา",
     "before": "ก่อนใช้ยา",
     "after": "หลังใช้ยา",
     "period": "ช่วงเวลา",
@@ -34,7 +34,7 @@
     "showLess": "ซ่อน",
     "previewNote": "ดูตัวอย่าง",
     "editNote": "แก้ไข",
-    "notePlaceholder": "เขียนบันทึก...",
+    "notePlaceholder": "เขียนบันทึก... (รองรับ Markdown)",
     "noNote": "ไม่มีบันทึก",
     "lastEntry": "บันทึกล่าสุด",
     "close": "ปิด"
@@ -46,7 +46,7 @@
     "noPersonalBest": "ยังไม่ได้ตั้งค่า Personal Base กรุณาติดต่อแพทย์"
   },
   "admin": {
-    "title": "ระบบจัดการผู้ใช้และข้อมูล",
+    "title": "แผงควบคุมแอดมิน",
     "users": "ผู้ใช้",
     "entries": "ข้อมูล",
     "auditLog": "ประวัติการแก้ไข",
@@ -65,9 +65,9 @@
     "linkCopied": "คัดลอกแล้ว!",
     "shareLink": "ลิงก์สำหรับผู้ใช้",
     "shareVia": "ส่งผ่านแอป",
-    "shareLinkHint": "สแกน QR หรือคัดลอกลิงก์เพื่อส่งให้ผู้ใช้",
+    "shareLinkHint": "แสกน QR หรือคัดลอกลิงก์เพื่อส่งให้ผู้ใช้",
     "clicks": "ครั้งที่เปิด",
-    "noData": "-",
+    "noData": "ไม่มีข้อมูล",
     "editEntry": "แก้ไขข้อมูล"
   },
   "auth": {
@@ -85,8 +85,7 @@
     "edit": "แก้ไข",
     "back": "กลับ",
     "notFound": "ไม่พบหน้าที่ต้องการ",
-    "invalidToken": "ลิงก์ไม่ถูกต้องหรือหมดอายุ",
-    "clear": "ล้าง"
+    "invalidToken": "ลิงก์ไม่ถูกต้องหรือหมดอายุ"
   },
   "chart": {
     "peakFlowTrend": "แนวโน้มค่าแรงเป่าลม",

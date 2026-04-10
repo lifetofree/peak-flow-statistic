@@ -327,168 +327,20 @@ All request bodies pass through Zod validation middleware.
 
 ## Environment Variables
 
-The project uses separate configurations for local, staging, and production environments.
+### Worker (`worker/wrangler.toml` vars)
 
-### Environments
-
-| Environment | Frontend URL | API URL | Database | Config Files |
-|-------------|--------------|---------|----------|--------------|
-| Local | http://localhost:5173 | http://localhost:8787 | `peakflowstat-db-dev` | `.env.development`, `wrangler.dev.toml` |
-| Staging | https://staging.peakflowstat.allergyclinic.cc | https://api-staging.peakflowstat.allergyclinic.cc | `peakflowstat-db-staging` | `.env.staging`, `wrangler.staging.toml` |
-| Production | https://peakflowstat.allergyclinic.cc | https://api.peakflowstat.allergyclinic.cc | `peakflowstat-db` | `.env.production`, `wrangler.toml` |
-
-### Frontend Environment Variables
-
-Frontend uses Vite's environment mode system. Create `.env.{mode}` files:
-
-- `.env.development` - Local development
-- `.env.staging` - Staging environment
-- `.env.production` - Production environment
-
-**Example `.env.development`**
 ```env
-VITE_API_URL=http://localhost:8787/api
+CORS_ORIGIN=https://www.peakflowstat.allergyclinic.cc
+FRONTEND_URL=https://www.peakflowstat.allergyclinic.cc   # Used by /s/:code redirect (302 target base)
 ```
 
-**Example `.env.production`**
+### Frontend (`frontend/.env.example`)
+
 ```env
-VITE_API_URL=https://api.peakflowstat.allergyclinic.cc/api
+VITE_API_URL=http://localhost:4000/api
 ```
 
-### Worker Environment Variables
-
-Worker uses separate Wrangler config files:
-
-- `wrangler.dev.toml` - Local development
-- `wrangler.staging.toml` - Staging environment
-- `wrangler.toml` - Production environment (default)
-
-**Example `wrangler.dev.toml`**
-```toml
-name = "peakflowstat-api-dev"
-[vars]
-ENVIRONMENT = "development"
-CORS_ORIGIN = "http://localhost:5173"
-FRONTEND_URL = "http://localhost:5173"
-[[d1_databases]]
-binding = "DB"
-database_name = "peakflowstat-db-dev"
-database_id = "YOUR_DEV_DATABASE_ID"
-```
-
-Never commit `.env` files. Environment config files (`.env.*`, `wrangler*.toml`) are committed.
-
-### Switching Between Environments
-
-**Frontend:**
-```bash
-# Local development (uses .env.development)
-npm run dev
-
-# Staging (uses .env.staging)
-npm run dev:staging
-
-# Production build (uses .env.production)
-npm run build
-```
-
-**Worker:**
-```bash
-# Local development (uses wrangler.dev.toml)
-npm run dev
-
-# Staging deployment (uses wrangler.staging.toml)
-npm run deploy:staging
-
-# Production deployment (uses wrangler.toml)
-npm run deploy
-```
-
-**Checking current mode:**
-In browser DevTools (`F12` → Console):
-```javascript
-import.meta.env.MODE  // Returns: "development" | "staging" | "production"
-import.meta.env.VITE_API_URL
-```
-
-### Quick Switching Guide
-
-| What you want | Command | Files Used | Environment |
-|---------------|---------|-------------|--------------|
-| Run frontend locally | `cd frontend && npm run dev` | `.env.development` | Development |
-| Build frontend for staging | `cd frontend && npm run build:staging` | `.env.staging` | Staging |
-| Build frontend for production | `cd frontend && npm run build` | `.env.production` | Production |
-| Run worker locally | `cd worker && npm run dev` | `wrangler.dev.toml` | Development |
-| Deploy worker to staging | `cd worker && npm run deploy:staging` | `wrangler.staging.toml` | Staging |
-| Deploy worker to production | `cd worker && npm run deploy` | `wrangler.toml` | Production |
-
-### Environment Details
-
-| Environment | Frontend URL | API URL | Database | Config Files |
-|-------------|--------------|---------|----------|--------------|
-| Development | http://localhost:5173 | http://localhost:8787 | Production D1 | `.env.development`, `wrangler.dev.toml` |
-| Staging | https://staging.peakflowstat.allergyclinic.cc | https://api-staging.peakflowstat.allergyclinic.cc | Staging D1 | `.env.staging`, `wrangler.staging.toml` |
-| Production | https://peakflowstat.allergyclinic.cc | https://api.peakflowstat.allergyclinic.cc | Production D1 | `.env.production`, `wrangler.toml` |
-
-### Current Configuration
-
-| Environment | Frontend URL | API URL | Database | Config Files | Status |
-|-------------|--------------|---------|----------|--------------|--------|
-| **Local Development** | http://localhost:5173 | http://localhost:8787 | Local (empty) | `.env.development`, `wrangler.dev.toml` | ⚠️ D1 Limitation |
-| **Production** | https://peakflowstat.allergyclinic.cc | https://api.peakflowstat.allergyclinic.cc | Production D1 | `.env.production`, `wrangler.toml` | ✅ Active |
-| **Staging** | Not configured | Not configured | Not configured | `.env.staging`, `wrangler.staging.toml` | 🔧 Not Deployed |
-
-### Local Development Notes
-
-**⚠️ Limitation**: `wrangler dev` creates a local in-memory SQLite database and cannot connect to remote D1 databases. This is a known Cloudflare Workers limitation.
-
-**Workflow Options**:
-
-1. **Option A - Use Production for Testing** (Recommended)
-   - Make code changes locally
-   - Build: `cd frontend && npm run build`
-   - Deploy directly to production or use production frontend at https://peakflowstat.allergyclinic.cc
-
-2. **Option B - Build and Preview**
-   - Make code changes locally
-   - Build: `cd frontend && npm run build`
-   - Preview: `cd frontend && npm run preview` (no proxy, static files only)
-
-3. **Option C - Deploy to Staging**
-   - Set up staging D1 database
-   - Deploy worker and frontend to staging
-   - Test on staging environment
-
-### Setup Staging Environment
-
-1. **Create Staging D1 Database**
-   ```bash
-   cd worker
-   npx wrangler d1 create peakflowstat-db-staging
-   ```
-
-2. **Update Database ID**
-   Copy the returned `database_id` and update `wrangler.staging.toml`.
-
-3. **Run Schema and Seed**
-   ```bash
-   npx wrangler d1 execute peakflowstat-db-staging --file=./migrations/0001_schema.sql --remote --config wrangler.staging.toml
-   npx wrangler d1 execute peakflowstat-db-staging --file=./migrations/0002_seed.sql --remote --config wrangler.staging.toml
-   ```
-
-4. **Deploy Staging Worker**
-   ```bash
-   npm run deploy:staging
-   ```
-
-5. **Deploy Staging Frontend**
-   ```bash
-   cd frontend
-   npm run build:staging
-   npx wrangler pages deploy dist --project-name=peakflowstat-staging --branch=staging
-   ```
-
-See `ENVIRONMENTS.md` for complete setup instructions.
+Never commit `.env` files. Both `.env.example` files MUST be committed.
 
 ---
 
@@ -598,7 +450,7 @@ timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 
 ### Deployment Configuration
 
-**Worker - Production (`worker/wrangler.toml`)**
+**Worker (`worker/wrangler.toml`)**
 ```toml
 name = "peakflowstat-api"
 main = "src/index.ts"
@@ -619,64 +471,15 @@ pattern = "api.peakflowstat.allergyclinic.cc"
 custom_domain = true
 ```
 
-**Worker - Staging (`worker/wrangler.staging.toml`)**
-```toml
-name = "peakflowstat-api-staging"
-main = "src/index.ts"
-compatibility_date = "2024-01-01"
-
-[vars]
-ENVIRONMENT = "staging"
-CORS_ORIGIN = "https://staging.peakflowstat.allergyclinic.cc"
-FRONTEND_URL = "https://staging.peakflowstat.allergyclinic.cc"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "peakflowstat-db-staging"
-database_id = "YOUR_STAGING_DATABASE_ID"
-
-[[routes]]
-pattern = "api-staging.peakflowstat.allergyclinic.cc"
-```
-
-**Worker - Development (`worker/wrangler.dev.toml`)**
-```toml
-name = "peakflowstat-api-dev"
-main = "src/index.ts"
-compatibility_date = "2024-01-01"
-
-[vars]
-ENVIRONMENT = "development"
-CORS_ORIGIN = "http://localhost:5173"
-FRONTEND_URL = "http://localhost:5173"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "peakflowstat-db-dev"
-database_id = "YOUR_DEV_DATABASE_ID"
-
-[[routes]]
-pattern = "api.dev.peakflowstat.allergyclinic.cc"
-```
-
 **Frontend (`frontend/public/_redirects`)**
 ```
 /s/* https://api.peakflowstat.allergyclinic.cc/s/:splat 302
+/* /index.html 200
 ```
 
-**Frontend - Production (`frontend/.env.production`)**
+**Frontend (`frontend/.env.production`)**
 ```
 VITE_API_URL=https://api.peakflowstat.allergyclinic.cc/api
-```
-
-**Frontend - Staging (`frontend/.env.staging`)**
-```
-VITE_API_URL=https://api-staging.peakflowstat.allergyclinic.cc/api
-```
-
-**Frontend - Development (`frontend/.env.development`)**
-```
-VITE_API_URL=http://localhost:8787/api
 ```
 
 ### Deployment Steps
@@ -735,5 +538,32 @@ See `worker/DEPLOYMENT.md` for detailed Cloudflare setup instructions.
 
 ---
 
+## Changelog
 
-See [CHANGELOGS.md](./CHANGELOGS.md) for version history.
+| Date | Change |
+|------|--------|
+| 2026-04-06 | Initial spec |
+| 2026-04-06 | v2: Added data models, API endpoints, security section, constraints |
+| 2026-04-06 | v3: Added peak flow zones, charts, mobile-first, services layer, validation ranges, frontend routes, export, admin CRUD gaps, Zod, health check, seed script |
+| 2026-04-06 | v4: Updated to match implementation — Vite (VITE_API_URL, main.tsx, Vitest), removed DOMPurify requirement (react-markdown safe by default), added deletedAt to User model, added rate limiting on patient routes, removed unused search param from admin entries, noted adminNote exclusion from patient profile, added constants.ts/Dockerfiles/nginx.conf to file structure, fixed changelog |
+| 2026-04-07 | v5: Removed admin authentication; administrative features now directly accessible at /admin. Added Markdown-supported 'Admin Note' field to user creation and detail views. |
+| 2026-04-06 | v6: Removed all authentication barriers — admin routes require no login (requireAdmin always passes), user routes auto-find first active user if token invalid/missing (validateShortLink fallback), login page auto-redirects to /admin. Division-by-zero guards added to zone calculations. App now fully open-access for simplicity. |
+| 2026-04-06 | v7: Added Bitly-like server-side short link system. New `shortCode` (6-char) and `clickCount` fields on User. `GET /s/:code` route in backend responds with 302 redirect to `/u/:shortToken`, nginx proxies `/s/` to backend. `ShortLinkRedirect.tsx` removed from frontend — `/s/:code` is no longer a React route. Added `period: 'morning'\|'evening'` required field to Entry. Added `ShareLinkCard` component (QR code + copy + native share). Per-row copy link button added to AdminDashboard user list. `FRONTEND_BASE_URL` env var added to backend. |
+| 2026-04-06 | v8: Removed charts (PeakFlowChart, SpO2Chart), TimeRangeSelector, and ZoneBadge from user dashboard. User page now shows name + entry list only. Removed click count column from admin user list (clickCount still tracked in DB). Recharts removed from active use (dependency retained). |
+| 2026-04-06 | v9: Removed ZoneBadge (zone color + percentage) from EntryCard. Entry records now show only date, period, peak flow best reading, SpO2, medication timing, and note. Zone data still returned by API but not displayed anywhere in the UI. |
+| 2026-04-07 | v10: Fixed `period` field migration — `updateEntrySchema` now has optional `period` with default `'morning'`. Added `period` to CSV export and adminUpdateEntry audit diff. CSV export now sends Authorization header for future auth re-enablement. |
+| 2026-04-07 | v11: Documented duplicate validation constants (L) and zone calculation (M) with ⚠️ sync comments in both files. |
+| 2026-04-07 | v12: Improved shortCode generation — now uses `crypto.randomBytes()` for cryptographically secure 8-char hex codes instead of predictable Math.random() alphanumeric. |
+| 2026-04-07 | v13: Removed "create new link" (rotateToken) button and clickCount display from admin user detail page. |
+| 2026-04-07 | v14: Removed "send to app" share button. User notes now show truncated preview with "show more/less". Admin can edit entry records with full timestamp update. |
+| 2026-04-07 | v15: Added cancel button to admin create user form. |
+| 2026-04-07 | v16: Removed shortCode textbox from admin edit user form (auto-generated). Added markdown preview toggle for entry notes in both user new entry form and admin entry edit form. |
+| 2026-04-07 | v17: Admin user list now shows adminNote preview with toggle to view full note. |
+| 2026-04-07 | v18: Admin user list - removed adminNote column, added "Last Entry" column. Admin entry list - added note column with click to view full note in modal. |
+| 2026-04-07 | v19: Admin create user form - adminNote field now supports markdown preview with toggle. |
+| 2026-04-07 | v20: Cleared all sample users/entries. Deleted old seed files (seed-john.ts, seed-11-users.ts, seed-jonh.ts). Created 20 sample users with 600 entries for testing. Deleted sample seed file after use. |
+| 2026-04-07 | v21: Deployed full-stack to Cloudflare: Workers backend + D1 database + Pages frontend at peakflowstat.allergyclinic.cc |
+| 2026-04-07 | v22: Fixed short link 404. Two root causes: (1) `/s/:code` was not handled on frontend domain — added `frontend/public/_redirects` to forward `/s/*` to worker. (2) Worker redirect used relative URL `/u/:token` which resolved to API domain — fixed to use absolute `FRONTEND_URL` env var. |
+| 2026-04-07 | v25: Fixed `GET /api/admin/entries` response shape — was wrapping each entry as `{ entry: {...}, zone }` but `AdminUserDetail` expected flat objects with `peakFlowReadings` directly on each item, causing "e is not iterable" TypeError. Flattened response to `{ _id, peakFlowReadings, zone, ... }`. Added 20 sample users (English names, no entries) to D1. |
+| 2026-04-07 | v24: Fixed API 404 on admin page — `VITE_API_URL` was missing `/api` suffix (called `/admin/users` instead of `/api/admin/users`). Removed root `wrangler.toml` and `frontend/wrangler.toml` (caused Pages CI to run `wrangler deploy`/`wrangler versions upload` instead of `npm run build`). Switched frontend deployment to direct CLI (`wrangler pages deploy`) instead of GitLab CI/CD integration. |
+| 2026-04-07 | v23: Full Cloudflare redeployment from scratch. Deleted old Pages (peakflowstatx), Workers (peakflowstat-api, peakflowstatx-backend), and D1 (peakflowstatx-db). Created new D1 (id: 812f290e). Changed frontend domain from `www.peakflowstat.allergyclinic.cc` to `peakflowstat.allergyclinic.cc` (no www) to use Universal SSL. Frontend now deployed via Cloudflare Pages GitLab CI/CD integration (auto-deploy on push). Fixed `pages.toml` — removed duplicate `root = "frontend"`. Removed `tsconfig.tsbuildinfo` from git (build cache). Added `/* /index.html 200` SPA fallback to `_redirects`. |

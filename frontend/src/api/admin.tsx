@@ -61,14 +61,10 @@ export function rotateToken(id: string): Promise<{ shortToken: string }> {
 
 export function fetchAdminEntries(
   page: number,
-  userId?: string,
-  from?: string,
-  to?: string
+  userId?: string
 ): Promise<{ entries: Entry[]; total: number; page: number; pageSize: number }> {
   const params = new URLSearchParams({ page: String(page) });
   if (userId) params.set('userId', userId);
-  if (from) params.set('from', from);
-  if (to) params.set('to', to);
   return adminFetch(`/admin/entries?${params}`);
 }
 

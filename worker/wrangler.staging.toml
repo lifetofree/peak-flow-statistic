@@ -1,0 +1,16 @@
+name = "peakflowstat-api-staging"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+ENVIRONMENT = "staging"
+CORS_ORIGIN = "https://staging.peakflowstat.allergyclinic.cc"
+FRONTEND_URL = "https://staging.peakflowstat.allergyclinic.cc"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "peakflowstat-db-staging"
+database_id = "YOUR_STAGING_DATABASE_ID"
+
+[[routes]]
+pattern = "api-staging.peakflowstat.allergyclinic.cc"
