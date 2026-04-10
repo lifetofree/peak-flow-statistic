@@ -5,7 +5,7 @@ stages:
   - deploy
 
 variables:
-  NODE_VERSION: "18"
+  NODE_VERSION: "20"
   WRANGLER_VERSION: "latest"
 
 # Build on pfs branch for preview testing
