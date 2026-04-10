@@ -399,45 +399,31 @@ export default function AdminUserDetail() {
                     <table className="w-full text-xs">
                       <thead className="bg-gray-50 border-b">
                         <tr>
-                          <th className="px-2 py-2 font-semibold text-gray-600 w-20 border-r border-gray-300" rowSpan={2}>Date</th>
-                          <th className="px-1 py-1 text-center text-orange-700 font-bold border-r border-orange-200" colSpan={3}>
+                          <th className="px-2 py-2 font-semibold text-gray-600 border-r border-gray-300">Date</th>
+                          <th className="px-2 py-2 text-center text-orange-700 font-bold border-r border-orange-200">
                             <div className="flex items-center justify-center gap-1">
-                              <Sun className="text-orange-500" size={10} />
-                              Morning - Before Med
+                              <Sun className="text-orange-500" size={12} />
+                              <span>Morning - Before Med</span>
                             </div>
                           </th>
-                          <th className="px-1 py-1 text-center text-purple-700 font-bold border-r border-purple-200" colSpan={3}>
+                          <th className="px-2 py-2 text-center text-purple-700 font-bold border-r border-purple-200">
                             <div className="flex items-center justify-center gap-1">
-                              <Sun className="text-orange-500" size={10} />
-                              Morning - After Med
+                              <Sun className="text-orange-500" size={12} />
+                              <span>Morning - After Med</span>
                             </div>
                           </th>
-                          <th className="px-1 py-1 text-center text-indigo-700 font-bold border-r border-indigo-200" colSpan={3}>
+                          <th className="px-2 py-2 text-center text-indigo-700 font-bold border-r border-indigo-200">
                             <div className="flex items-center justify-center gap-1">
-                              <Moon className="text-indigo-600" size={10} />
-                              Evening - Before Med
+                              <Moon className="text-indigo-600" size={12} />
+                              <span>Evening - Before Med</span>
                             </div>
                           </th>
-                          <th className="px-1 py-1 text-center text-blue-700 font-bold border-r border-blue-200" colSpan={3}>
+                          <th className="px-2 py-2 text-center text-blue-700 font-bold">
                             <div className="flex items-center justify-center gap-1">
-                              <Moon className="text-indigo-600" size={10} />
-                              Evening - After Med
+                              <Moon className="text-indigo-600" size={12} />
+                              <span>Evening - After Med</span>
                             </div>
                           </th>
-                        </tr>
-                        <tr className="bg-gray-50/70 text-gray-500">
-                          <th className="px-1 py-1 text-center font-medium border-r border-orange-200">PF</th>
-                          <th className="px-1 py-1 text-center font-medium border-r border-orange-200">SpO₂</th>
-                          <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
-                          <th className="px-1 py-1 text-center font-medium border-r border-purple-200">PF</th>
-                          <th className="px-1 py-1 text-center font-medium border-r border-purple-200">SpO₂</th>
-                          <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
-                          <th className="px-1 py-1 text-center font-medium border-r border-indigo-200">PF</th>
-                          <th className="px-1 py-1 text-center font-medium border-r border-indigo-200">SpO₂</th>
-                          <th className="px-1 py-1 text-center font-medium border-r border-gray-300">Note</th>
-                          <th className="px-1 py-1 text-center font-medium border-r border-blue-200">PF</th>
-                          <th className="px-1 py-1 text-center font-medium border-r border-blue-200">SpO₂</th>
-                          <th className="px-1 py-1 text-center font-medium">Note</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -448,31 +434,27 @@ export default function AdminUserDetail() {
                           const eveningBeforeEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'before');
                           const eveningAfterEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'after');
 
+                          // Combined cell: PF (3 values) / SpO2 / Note icon
                           const renderCell = (entry: any) => {
                             if (!entry) return <span className="text-gray-300">-</span>;
-                            return entry.peakFlowReadings?.join('/') || '-';
-                          };
-                          
-                          const renderSpO2 = (entry: any) => {
-                            if (!entry) return <span className="text-gray-300">-</span>;
+                            const pf = entry.peakFlowReadings?.join('/') || '-';
                             return (
-                              <span className={`px-1 py-0.5 rounded text-xs font-bold ${
-                                entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                              }`}>
-                                {entry.spO2}
-                              </span>
-                            );
-                          };
-                          
-                          const renderNote = (entry: any) => {
-                            if (!entry?.note) return <span className="text-gray-300">-</span>;
-                            return (
-                              <button
-                                onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
-                                className="text-gray-400 hover:text-blue-600 transition-colors"
-                              >
-                                <FileText size={12} />
-                              </button>
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="text-xs">{pf}</span>
+                                <span className={`px-1 py-0.5 rounded text-xs font-bold ${
+                                  entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {entry.spO2}
+                                </span>
+                                {entry.note && (
+                                  <button
+                                    onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
+                                    className="text-gray-400 hover:text-blue-600 transition-colors"
+                                  >
+                                    <FileText size={12} />
+                                  </button>
+                                )}
+                              </div>
                             );
                           };
 
@@ -481,18 +463,10 @@ export default function AdminUserDetail() {
                               <td className="px-2 py-2 whitespace-nowrap font-medium text-gray-700 border-r border-gray-200">
                                 {formatThaiDate(dateEntries[0].date)}
                               </td>
-                              <td className="px-1 py-2 text-center border-r border-orange-200 bg-orange-50/20">{renderCell(morningBeforeEntry)}</td>
-                              <td className="px-1 py-2 text-center border-r border-orange-200 bg-orange-50/20">{renderSpO2(morningBeforeEntry)}</td>
-                              <td className="px-1 py-2 text-center border-r border-gray-200 bg-orange-50/20">{renderNote(morningBeforeEntry)}</td>
-                              <td className="px-1 py-2 text-center border-r border-purple-200 bg-purple-50/20">{renderCell(morningAfterEntry)}</td>
-                              <td className="px-1 py-2 text-center border-r border-purple-200 bg-purple-50/20">{renderSpO2(morningAfterEntry)}</td>
-                              <td className="px-1 py-2 text-center border-r border-gray-200 bg-purple-50/20">{renderNote(morningAfterEntry)}</td>
-                              <td className="px-1 py-2 text-center border-r border-indigo-200 bg-indigo-50/20">{renderCell(eveningBeforeEntry)}</td>
-                              <td className="px-1 py-2 text-center border-r border-indigo-200 bg-indigo-50/20">{renderSpO2(eveningBeforeEntry)}</td>
-                              <td className="px-1 py-2 text-center border-r border-gray-200 bg-indigo-50/20">{renderNote(eveningBeforeEntry)}</td>
-                              <td className="px-1 py-2 text-center border-r border-blue-200 bg-blue-50/20">{renderCell(eveningAfterEntry)}</td>
-                              <td className="px-1 py-2 text-center border-r border-blue-200 bg-blue-50/20">{renderSpO2(eveningAfterEntry)}</td>
-                              <td className="px-1 py-2 text-center bg-blue-50/20">{renderNote(eveningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-orange-200 bg-orange-50/20">{renderCell(morningBeforeEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-purple-200 bg-purple-50/20">{renderCell(morningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-200 bg-indigo-50/20">{renderCell(eveningBeforeEntry)}</td>
+                              <td className="px-2 py-2 text-center bg-blue-50/20">{renderCell(eveningAfterEntry)}</td>
                             </tr>
                           );
                         })}
