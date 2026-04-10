@@ -4,10 +4,13 @@ compatibility_date = "2024-01-01"
 
 [vars]
 ENVIRONMENT = "staging"
-CORS_ORIGIN = "https://staging.peakflowstat.pages.dev"
-FRONTEND_URL = "https://staging.peakflowstat.pages.dev"
+CORS_ORIGIN = "https://staging.peakflowstat.allergyclinic.cc"
+FRONTEND_URL = "https://staging.peakflowstat.allergyclinic.cc"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "peakflowstat-db"
-database_id = "812f290e-51dc-433b-a2d8-4156dadd72d0"
+database_name = "peakflowstat-db-staging"
+database_id = "YOUR_STAGING_DATABASE_ID"
+
+[[routes]]
+pattern = "api-staging.peakflowstat.allergyclinic.cc"

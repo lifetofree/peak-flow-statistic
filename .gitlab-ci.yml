@@ -1,45 +1,93 @@
-# PeakFlowStat CI/CD Pipeline
-# Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in GitLab CI/CD variables
+image: node:18
 
 stages:
   - build
   - deploy
 
-# Worker deployment
-deploy-worker:
-  stage: deploy
-  image: node:18-alpine
-  environment: production
-  url: https://api.peakflowstat.allergyclinic.cc
+variables:
+  NODE_VERSION: "18"
+  WRANGLER_VERSION: "latest"
+
+# Build on pfs branch for preview testing
+build_frontend_pfs:
+  stage: build
+  image: node:${NODE_VERSION}
+  before_script:
+    - cd frontend
+    - npm ci
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist
+    expire_in: 1 week
+  only:
+    - pfs
+  except:
+    - main
+
+# Build on main branch for production
+build_frontend_main:
+  stage: build
+  image: node:${NODE_VERSION}
+  before_script:
+    - cd frontend
+    - npm ci
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist
+    expire_in: 1 week
   only:
     - main
-  script:
+
+# Build worker on main only
+build_worker:
+  stage: build
+  image: node:${NODE_VERSION}
+  before_script:
     - cd worker
-    - npm ci --prefer-offline
-    - npm run deploy
-
-# Frontend deployment to production branch
-deploy-frontend-production:
-  stage: deploy
-  image: node:18-alpine
-  environment: production
-  url: https://peakflowstat.allergyclinic.cc
+    - npm ci
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - worker/dist
+    expire_in: 1 week
   only:
     - main
-  script:
-    - cd frontend
-    - npm ci --prefer-offline
-    - npm run build
-    - npx wrangler pages deploy dist --project-name=peakflowstat --branch=production --commit-hash=$CI_COMMIT_SHA --commit-message="$CI_COMMIT_MESSAGE"
 
-# Frontend deployment to preview (all branches)
-deploy-frontend-preview:
+# Manual deploy worker to production
+deploy_worker:
   stage: deploy
-  image: node:18-alpine
-  only:
-    - branches
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm install -g wrangler@${WRANGLER_VERSION}
+    - cd worker
   script:
+    - wrangler deploy
+  environment:
+    name: production
+    url: https://api.peakflowstat.allergyclinic.cc
+  only:
+    - main
+  when: manual
+
+# Deploy frontend to production (manual)
+deploy_frontend_production:
+  stage: deploy
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm install -g wrangler@${WRANGLER_VERSION}
     - cd frontend
-    - npm ci --prefer-offline
+    - npm ci
+  script:
     - npm run build
-    - npx wrangler pages deploy dist --project-name=peakflowstat --commit-hash=$CI_COMMIT_SHA --commit-message="$CI_COMMIT_MESSAGE"
+    - wrangler pages deploy dist --project-name=peakflowstat --branch=main
+  environment:
+    name: production
+    url: https://peakflowstat.allergyclinic.cc
+  only:
+    - main
+  when: manual

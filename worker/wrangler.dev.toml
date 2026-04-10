@@ -1,0 +1,17 @@
+name = "peakflowstat-api-dev"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+ENVIRONMENT = "development"
+CORS_ORIGIN = "http://localhost:5173"
+FRONTEND_URL = "http://localhost:5173"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "peakflowstat-db"
+database_id = "812f290e-51dc-433b-a2d8-4156dadd72d0"
+
+[[routes]]
+pattern = "api.dev.peakflowstat.allergyclinic.cc"
+custom_domain = true

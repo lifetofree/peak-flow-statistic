@@ -1,12 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "peakflowstat",
-  "compatibility_date": "2026-04-09",
+  "name": "peak-flow-statistic",
+  "compatibility_date": "2026-04-10",
+  "observability": {
+    "enabled": true
+  },
   "assets": {
-    "directory": "dist",
     "not_found_handling": "single-page-application"
   },
-  "observability": {
-    "enabled": false
-  }
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
 }
