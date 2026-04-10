@@ -8,6 +8,7 @@ import {
   Edit2,
   Trash2,
   FileDown,
+  FileText,
   Save,
   X,
   User as UserIcon,
@@ -102,21 +103,6 @@ export default function AdminUserDetail() {
       alert(error.message || t('common.error'));
     },
   });
-
-  const startEditingEntry = (entry: any) => {
-    const d = new Date(entry.date);
-    const dateStr = d.toISOString().split('T')[0] ?? '';
-    setEntryForm({
-      date: dateStr,
-      peakFlowReadings: entry.peakFlowReadings.map(String) as [string, string, string],
-      spO2: String(entry.spO2),
-      medicationTiming: entry.medicationTiming,
-      period: entry.period,
-      note: entry.note || '',
-    });
-    setShowNotePreview(false);
-    setEditingEntry(entry._id);
-  };
 
   const handleSaveEntry = () => {
     if (!editingEntry) return;
@@ -381,83 +367,100 @@ export default function AdminUserDetail() {
           <div className="text-center py-8 text-gray-500 italic border rounded-xl border-dashed">
             {t('entry.noEntries')}
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.date')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.period')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.peakFlow')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.spO2')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.medicationTiming')}</th>
-                  <th className="text-left px-3 py-3 font-semibold text-gray-600">{t('entry.note')}</th>
-                  <th className="px-3 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {entriesQuery.data.entries.map((entry) => (
-                  <tr key={entry._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-3 py-3 whitespace-nowrap">{formatThaiDate(entry.date)}</td>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {entry.period === 'morning' ? (
-                          <Sun className="text-orange-500" size={14} />
-                        ) : (
-                          <Moon className="text-indigo-600" size={14} />
-                        )}
-                        <span className="text-xs font-medium uppercase tracking-tight text-gray-500">
-                          {t(`entry.${entry.period}`)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="font-medium">{getBestReading(entry.peakFlowReadings)}</span> L/min
-                      <span className="text-xs text-gray-400 ml-1">
-                        ({entry.peakFlowReadings.join('/')})
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                        entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {entry.spO2}%
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="text-gray-600">{t(`entry.${entry.medicationTiming}`)}</span>
-                    </td>
-                    <td className="px-3 py-3">
-                      {entry.note ? (
-                        entry.note.length > 30 ? (
-                          <button
-                            onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
-                            className="text-xs text-blue-600 hover:underline text-left"
-                          >
-                            {entry.note.slice(0, 30)}...
-                          </button>
-                        ) : (
-                          <span className="text-xs text-gray-600">{entry.note}</span>
-                        )
-                      ) : (
-                        <span className="text-gray-400 text-xs">-</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      <button
-                        onClick={() => startEditingEntry(entry)}
-                        className="text-blue-600 hover:bg-blue-50 p-1.5 rounded-lg transition-colors"
-                        title={t('common.edit')}
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        ) : (() => {
+            // Group entries by date
+            const entriesList = entriesQuery.data?.entries || [];
+            const entriesByDate: Record<string, typeof entriesList> = {};
+            for (const entry of entriesList) {
+              const dateKey = entry.date.split('T')[0] || '';
+              if (!entriesByDate[dateKey]) entriesByDate[dateKey] = [];
+              entriesByDate[dateKey]!.push(entry);
+            }
+
+            const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+            return (
+              <div className="overflow-x-auto border rounded-xl">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-2 py-2 font-semibold text-gray-600 border-r">Date</th>
+                      <th className="px-2 py-2 text-center text-orange-600 font-bold border-r bg-orange-50">
+                        <div className="flex items-center justify-center gap-1">
+                          <Sun size={12} />
+                          <span>Morning Before</span>
+                        </div>
+                      </th>
+                      <th className="px-2 py-2 text-center text-orange-600 font-bold border-r bg-orange-50/50">
+                        <div className="flex items-center justify-center gap-1">
+                          <Sun size={12} />
+                          <span>Morning After</span>
+                        </div>
+                      </th>
+                      <th className="px-2 py-2 text-center text-indigo-600 font-bold border-r bg-indigo-50">
+                        <div className="flex items-center justify-center gap-1">
+                          <Moon size={12} />
+                          <span>Evening Before</span>
+                        </div>
+                      </th>
+                      <th className="px-2 py-2 text-center text-indigo-600 font-bold bg-indigo-50/50">
+                        <div className="flex items-center justify-center gap-1">
+                          <Moon size={12} />
+                          <span>Evening After</span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {sortedDates.map((dateKey) => {
+                      const dayEntries = entriesByDate[dateKey] || [];
+                      const morningBefore = dayEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'before');
+                      const morningAfter = dayEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'after');
+                      const eveningBefore = dayEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'before');
+                      const eveningAfter = dayEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'after');
+
+                      const renderCell = (entry: any) => {
+                        if (!entry) return <span className="text-gray-300">-</span>;
+                        return (
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">{getBestReading(entry.peakFlowReadings)}</span>
+                              <span className="text-xs text-gray-400">({entry.peakFlowReadings.join('/')})</span>
+                            </div>
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                              entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {entry.spO2}%
+                            </span>
+                            {entry.note && (
+                              <button
+                                onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
+                                className="text-blue-600 hover:text-blue-800"
+                              >
+                                <FileText size={12} />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      };
+
+                      return (
+                        <tr key={dateKey} className="hover:bg-gray-50">
+                          <td className="px-2 py-2 font-medium text-gray-700 border-r whitespace-nowrap">
+                            {formatThaiDate(dateKey)}
+                          </td>
+                          <td className="px-2 py-2 text-center border-r bg-orange-50/30">{renderCell(morningBefore)}</td>
+                          <td className="px-2 py-2 text-center border-r bg-orange-50/10">{renderCell(morningAfter)}</td>
+                          <td className="px-2 py-2 text-center border-r bg-indigo-50/30">{renderCell(eveningBefore)}</td>
+                          <td className="px-2 py-2 text-center bg-indigo-50/10">{renderCell(eveningAfter)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
 
         {editingEntry && (
           <div className="mt-4 p-4 bg-gray-50 rounded-xl border space-y-3">
