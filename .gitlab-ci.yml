@@ -84,7 +84,7 @@ deploy_frontend_production:
     - npm ci
   script:
     - npm run build
-    - wrangler pages deploy dist --project-name=peakflowstat --branch=main
+    - wrangler pages deploy dist --project-name=peakflowstat --branch=main --commit-description="Frontend production deploy"
   environment:
     name: production
     url: https://peakflowstat.allergyclinic.cc
