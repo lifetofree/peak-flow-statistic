@@ -1,9 +1,6 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "peak-flow-statistic",
   "compatibility_date": "2026-04-10",
-  "pages_build_output_dir": "./dist",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ]
+  "pages_build_output_dir": "dist",
+  "compatibility_flags": ["nodejs_compat"]
 }
