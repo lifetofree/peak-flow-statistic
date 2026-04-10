@@ -18,7 +18,6 @@ import {
   Moon,
   Link2,
   FileText,
-  Calendar,
 } from 'lucide-react';
 import ShareLinkCard from '../components/ShareLinkCard';
 import { fetchUser, updateUser, updateNote, fetchAdminEntries, deleteUser } from '../api/admin';
@@ -35,11 +34,9 @@ export default function AdminUserDetail() {
   const [form, setForm] = useState({ firstName: '', lastName: '', nickname: '', personalBest: '' });
   const [noteText, setNoteText] = useState('');
   const [entryPage, setEntryPage] = useState(1);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
-  const today = new Date().toISOString().split('T')[0];
-  const pageSize = 20;
+  const daysPerPage = 20;
+  const entriesPerPage = daysPerPage * 4; // 4 entries per day (morning/evening x before/after)
 
   const userQuery = useQuery({
     queryKey: ['adminUser', id],
@@ -48,8 +45,8 @@ export default function AdminUserDetail() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['adminEntries', id, entryPage, dateFrom, dateTo],
-    queryFn: () => fetchAdminEntries(entryPage, id, dateFrom || undefined, dateTo || undefined),
+    queryKey: ['adminEntries', id, entryPage],
+    queryFn: () => fetchAdminEntries(entryPage, id, 0), // 0 = fetch all entries
     enabled: Boolean(id),
   });
 
@@ -146,29 +143,48 @@ export default function AdminUserDetail() {
     );
   }
 
-  // Group entries by date, period, and medication timing, keeping latest entry per combination
-  const groupedEntries = entriesQuery.data?.entries.reduce((acc, entry) => {
+  // Group entries by date and get latest entry for each period+medication combination
+  const allEntries = entriesQuery.data?.entries ?? [];
+  
+  // Create a map for each date with the latest entry for each period/medication combination
+  const latestEntriesByDate: Record<string, any> = {};
+  
+  allEntries.forEach((entry: any) => {
     const dateKey = entry.date.split('T')[0];
     const periodKey = entry.period;
     const medKey = entry.medicationTiming;
-    const key = `${dateKey}-${periodKey}-${medKey}`;
+    const subKey = `${periodKey}-${medKey}`;
     
-    if (!acc[key] || new Date(entry.createdAt) > new Date(acc[key].createdAt)) {
-      acc[key] = entry;
+    if (!latestEntriesByDate[dateKey]) {
+      latestEntriesByDate[dateKey] = {};
     }
-    return acc;
-  }, {} as Record<string, any>);
-
-  // Group by date for display
-  const entriesByDate = Object.values(groupedEntries || {}).reduce((acc, entry) => {
-    const dateKey = entry.date.split('T')[0];
-    if (!acc[dateKey]) acc[dateKey] = [];
-    acc[dateKey].push(entry);
-    return acc;
-  }, {} as Record<string, any[]>);
+    
+    // Keep the latest entry for this combination
+    if (!latestEntriesByDate[dateKey][subKey] || 
+        new Date(entry.createdAt) > new Date(latestEntriesByDate[dateKey][subKey]?.createdAt || 0)) {
+      latestEntriesByDate[dateKey][subKey] = entry;
+    }
+  });
+  
+  // Convert to array format for table rendering
+  const entriesByDate: Record<string, any[]> = {};
+  Object.keys(latestEntriesByDate).forEach((date) => {
+    entriesByDate[date] = [
+      latestEntriesByDate[date]['morning-before'],
+      latestEntriesByDate[date]['morning-after'],
+      latestEntriesByDate[date]['evening-before'],
+      latestEntriesByDate[date]['evening-after'],
+    ].filter(Boolean);
+  });
 
   // Sort dates descending (newest first)
   const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  
+  const totalDays = sortedDates.length;
+  const totalPages = Math.ceil(totalDays / daysPerPage);
+  const startIdx = (entryPage - 1) * daysPerPage;
+  const endIdx = startIdx + daysPerPage;
+  const paginatedDates = sortedDates.slice(startIdx, endIdx);
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
@@ -346,35 +362,6 @@ export default function AdminUserDetail() {
           <History size={20} className="text-purple-600" />
           {t('admin.entries')}
         </h3>
-        
-        {/* Date Filter */}
-        <div className="flex items-center gap-2 mb-4 pb-4 border-b">
-          <Calendar size={16} className="text-gray-400" />
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setEntryPage(1); }}
-            max={dateTo || today}
-            className="text-sm border rounded-lg px-2 py-1"
-          />
-          <span className="text-gray-400 text-sm">-</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setEntryPage(1); }}
-            max={today}
-            min={dateFrom}
-            className="text-sm border rounded-lg px-2 py-1"
-          />
-          {(dateFrom || dateTo) && (
-            <button
-              onClick={() => { setDateFrom(''); setDateTo(''); setEntryPage(1); }}
-              className="text-xs text-gray-500 hover:text-gray-700 ml-2"
-            >
-              {t('common.clear')}
-            </button>
-          )}
-        </div>
 
         {entriesQuery.isLoading ? (
           <div className="flex justify-center py-8">
@@ -385,13 +372,13 @@ export default function AdminUserDetail() {
             {t('entry.noEntries')}
           </div>
         ) : (() => {
-              const totalDates = sortedDates.length;
-              const totalPages = Math.ceil(totalDates / pageSize);
-              const startIdx = (entryPage - 1) * pageSize;
-              const endIdx = startIdx + pageSize;
-              const paginatedDates = sortedDates.slice(startIdx, endIdx);
-              
+              const totalDates = entriesQuery.data.total;
               if (totalDates === 0) return null;
+              
+              const totalPages = Math.ceil(totalDates / entriesPerPage);
+              const startIdx = (entryPage - 1) * entriesPerPage;
+              const endIdx = startIdx + entriesPerPage;
+              const paginatedDates = sortedDates.slice(startIdx, endIdx);
               
               return (
                 <>
@@ -399,31 +386,45 @@ export default function AdminUserDetail() {
                     <table className="w-full text-xs">
                       <thead className="bg-gray-50 border-b">
                         <tr>
-                          <th className="px-2 py-2 font-semibold text-gray-600 border-r border-gray-300">Date</th>
-                          <th className="px-2 py-2 text-center text-orange-700 font-bold border-r border-orange-200">
+                          <th className="px-2 py-2 font-semibold text-gray-600 border-r border-gray-300" rowSpan={2}>Date</th>
+                          <th className="px-2 py-2 text-center text-orange-600 font-bold border-r border-orange-200" colSpan={3}>
                             <div className="flex items-center justify-center gap-1">
                               <Sun className="text-orange-500" size={12} />
                               <span>Morning - Before Med</span>
                             </div>
                           </th>
-                          <th className="px-2 py-2 text-center text-purple-700 font-bold border-r border-purple-200">
+                          <th className="px-2 py-2 text-center text-orange-600 font-bold border-r border-orange-200" colSpan={3}>
                             <div className="flex items-center justify-center gap-1">
                               <Sun className="text-orange-500" size={12} />
                               <span>Morning - After Med</span>
                             </div>
                           </th>
-                          <th className="px-2 py-2 text-center text-indigo-700 font-bold border-r border-indigo-200">
+                          <th className="px-2 py-2 text-center text-indigo-600 font-bold border-r border-indigo-200" colSpan={3}>
                             <div className="flex items-center justify-center gap-1">
                               <Moon className="text-indigo-600" size={12} />
                               <span>Evening - Before Med</span>
                             </div>
                           </th>
-                          <th className="px-2 py-2 text-center text-blue-700 font-bold">
+                          <th className="px-2 py-2 text-center text-indigo-600 font-bold" colSpan={3}>
                             <div className="flex items-center justify-center gap-1">
                               <Moon className="text-indigo-600" size={12} />
                               <span>Evening - After Med</span>
                             </div>
                           </th>
+                        </tr>
+                        <tr>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">PF(L/Min)</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">SpO2</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">Note</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">PF(L/Min)</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">SpO2</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">Note</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">PF(L/Min)</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">SpO2</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">Note</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">PF(L/Min)</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">SpO2</th>
+                          <th className="px-2 py-1 text-center font-semibold text-gray-500 bg-indigo-50/10">Note</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -434,39 +435,53 @@ export default function AdminUserDetail() {
                           const eveningBeforeEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'before');
                           const eveningAfterEntry = dateEntries.find((e: any) => e.period === 'evening' && e.medicationTiming === 'after');
 
-                          // Combined cell: PF (3 values) / SpO2 / Note icon
-                          const renderCell = (entry: any) => {
+                          const renderPFCell = (entry: any) => {
                             if (!entry) return <span className="text-gray-300">-</span>;
-                            const pf = entry.peakFlowReadings?.join('/') || '-';
+                            return <span className="text-xs">{entry.peakFlowReadings?.join('/') || '-'}</span>;
+                          };
+
+                          const renderSpO2Cell = (entry: any) => {
+                            if (!entry) return <span className="text-gray-300">-</span>;
                             return (
-                              <div className="flex flex-col items-center gap-1">
-                                <span className="text-xs">{pf}</span>
-                                <span className={`px-1 py-0.5 rounded text-xs font-bold ${
-                                  entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                                }`}>
-                                  {entry.spO2}
-                                </span>
-                                {entry.note && (
-                                  <button
-                                    onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(entry.date) })}
-                                    className="text-gray-400 hover:text-blue-600 transition-colors"
-                                  >
-                                    <FileText size={12} />
-                                  </button>
-                                )}
-                              </div>
+                              <span className={`px-1 py-0.5 rounded text-xs font-bold ${
+                                entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                                {entry.spO2}
+                              </span>
                             );
                           };
+
+                          const renderNoteCell = (entry: any, date: string) => {
+                            if (!entry || !entry.note) return <span className="text-gray-300">-</span>;
+                            return (
+                              <button
+                                onClick={() => setViewingNote({ note: entry.note, date: formatThaiDate(date) })}
+                                className="text-blue-500 hover:text-blue-700 transition-colors"
+                              >
+                                <FileText size={12} />
+                              </button>
+                            );
+                          };
+
+                          const displayDate = morningBeforeEntry?.date || morningAfterEntry?.date || eveningBeforeEntry?.date || eveningAfterEntry?.date || dateKey;
 
                           return (
                             <tr key={dateKey} className="hover:bg-gray-50 transition-colors">
                               <td className="px-2 py-2 whitespace-nowrap font-medium text-gray-700 border-r border-gray-200">
-                                {formatThaiDate(dateEntries[0].date)}
+                                {formatThaiDate(displayDate)}
                               </td>
-                              <td className="px-2 py-2 text-center border-r border-orange-200 bg-orange-50/20">{renderCell(morningBeforeEntry)}</td>
-                              <td className="px-2 py-2 text-center border-r border-purple-200 bg-purple-50/20">{renderCell(morningAfterEntry)}</td>
-                              <td className="px-2 py-2 text-center border-r border-indigo-200 bg-indigo-50/20">{renderCell(eveningBeforeEntry)}</td>
-                              <td className="px-2 py-2 text-center bg-blue-50/20">{renderCell(eveningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderPFCell(morningBeforeEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderSpO2Cell(morningBeforeEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-orange-200 bg-orange-50/10">{renderNoteCell(morningBeforeEntry, displayDate)}</td>
+                              <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderPFCell(morningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderSpO2Cell(morningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-purple-200 bg-purple-50/10">{renderNoteCell(morningAfterEntry, displayDate)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderPFCell(eveningBeforeEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderSpO2Cell(eveningBeforeEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-200 bg-indigo-50/10">{renderNoteCell(eveningBeforeEntry, displayDate)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderPFCell(eveningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderSpO2Cell(eveningAfterEntry)}</td>
+                              <td className="px-2 py-2 text-center bg-blue-50/10">{renderNoteCell(eveningAfterEntry, displayDate)}</td>
                             </tr>
                           );
                         })}

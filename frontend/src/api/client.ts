@@ -38,10 +38,11 @@ export async function adminFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
+  const headers = authHeaders();
   return apiFetch<T>(path, {
     ...options,
     headers: {
-      ...authHeaders(),
+      ...(Object.keys(headers).length > 0 ? headers : {}),
       ...options.headers,
     },
   });

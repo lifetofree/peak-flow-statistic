@@ -432,27 +432,67 @@ import.meta.env.VITE_API_URL
 
 ### Current Configuration
 
-| Environment | Frontend URL | API URL | Database | Config Files | Status |
-|-------------|--------------|---------|----------|--------------|--------|
-| **Local Development** | http://localhost:5173 | http://localhost:8787 | Local (empty) | `.env.development`, `wrangler.dev.toml` | ⚠️ D1 Limitation |
-| **Production** | https://peakflowstat.allergyclinic.cc | https://api.peakflowstat.allergyclinic.cc | Production D1 | `.env.production`, `wrangler.toml` | ✅ Active |
-| **Staging** | Not configured | Not configured | Not configured | `.env.staging`, `wrangler.staging.toml` | 🔧 Not Deployed |
+| Environment | Frontend | API | Database | Config Files |
+|-------------|----------|-----|----------|---------------|
+| **Local Development** | http://localhost:5173 | http://localhost:8787 | Local D1 | `.env.development`, `.dev.vars`, `wrangler.dev.toml` |
+| **Production** | https://peakflowstat.allergyclinic.cc | https://api.peakflowstat.allergyclinic.cc | Production D1 | `.env.production`, `.dev.vars`, `wrangler.toml` |
+| **Staging** | Not configured | Not configured | Not configured | `.env.staging`, `wrangler.staging.toml` |
+
+### Local Development Configuration
+
+**Frontend `.env.development**
+```env
+VITE_API_URL=http://localhost:8787/api
+```
+
+**Worker `.dev.vars**
+```env
+ENVIRONMENT="development"
+CORS_ORIGIN="http://localhost:5173"
+FRONTEND_URL="http://localhost:5173"
+JWT_SECRET="your-jwt-secret-here"
+```
+
+**Worker `wrangler.dev.toml` (already configured with local D1 binding)
 
 ### Local Development Notes
 
-**⚠️ Limitation**: `wrangler dev` creates a local in-memory SQLite database and cannot connect to remote D1 databases. This is a known Cloudflare Workers limitation.
+**Running Locally:**
+
+```bash
+# Start frontend
+cd frontend && npm run dev
+
+# Start worker (separate terminal)
+cd worker && npm run dev
+```
+
+**Local Database Files:**
+
+| File Type | Path | Description |
+|-----------|------|-------------|
+| Local SQLite | `worker/.wrangler/state/v3/d1/*/metadata.sqlite` | Local D1 database |
+| Schema | `worker/migrations/0001_schema.sql` | Database schema |
+| Seed Data | `worker/migrations/0002_seed.sql` | Initial users & entries |
+| Sample Data | `worker/phon_entries.sql` | 30-day test data |
+| Production Backup | `worker/production-backup.sql` | Full production copy |
+
+**Database Location:**
+```
+worker/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/<hash>.sqlite
+```
+
+**⚠️ Note**: `wrangler dev` uses local D1 database. For production data, use Option A or B below.
 
 **Workflow Options**:
 
-1. **Option A - Use Production for Testing** (Recommended)
-   - Make code changes locally
-   - Build: `cd frontend && npm run build`
-   - Deploy directly to production or use production frontend at https://peakflowstat.allergyclinic.cc
+1. **Option A - Use Production D1** (Recommended)
+   - Worker dev server connects to production D1 database
+   - Make code changes locally and test immediately
 
 2. **Option B - Build and Preview**
-   - Make code changes locally
-   - Build: `cd frontend && npm run build`
-   - Preview: `cd frontend && npm run preview` (no proxy, static files only)
+   - Build frontend: `cd frontend && npm run build`
+   - Preview: `cd frontend && npm run preview`
 
 3. **Option C - Deploy to Staging**
    - Set up staging D1 database
