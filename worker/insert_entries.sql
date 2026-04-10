@@ -1,0 +1,2 @@
+-- Insert entries for user1, 30 days, 2 entries per day (morning & evening)
+-- Run with: npx wrangler d1 execute peakflowstat-db --local --file=./insert_entries.sql

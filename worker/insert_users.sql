@@ -1,0 +1,1 @@
+INSERT INTO users (id, first_name, last_name, nickname, short_token, short_code, click_count, created_at, updated_at) VALUES (lower(hex(randomblob(16)), 'John', 'Smith', 'john1', lower(hex(randomblob(16)), lower(hex(randomblob(4)), 0, datetime('now'), datetime('now'))

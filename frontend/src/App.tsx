@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -31,7 +31,8 @@ export default function App() {
   return (
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
-<Route path="/u/:token" element={<UserDashboard />} />
+<Route path="/" element={<Navigate to="/admin" replace />} />
+        <Route path="/u/:token" element={<UserDashboard />} />
         <Route path="/u/:token/new" element={<NewEntry />} />
         <Route path="/u/:token/entries" element={<EntryHistory />} />
         <Route path="/admin/login" element={<AdminLogin />} />

@@ -48,7 +48,7 @@ export default function AdminUserDetail() {
   const userQuery = useQuery({
     queryKey: ['adminUser', id],
     queryFn: () => fetchUser(id!),
-    enabled: !!id,
+    enabled: Boolean(id),
   });
 
   const entriesQuery = useQuery({

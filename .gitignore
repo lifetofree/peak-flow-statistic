@@ -1,6 +1,7 @@
 # Claude settings (may contain sensitive data)
 .claude/
 
+<<<<<<< HEAD
 # Node modules
 node_modules/
 worker/node_modules/
@@ -9,3 +10,33 @@ frontend/node_modules/
 # Build outputs
 dist/
 build/
+=======
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+frontend/dist/
+
+# Wrangler
+.wrangler/
+worker/.wrangler/
+frontend/.wrangler/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Lock files
+worker/package-lock.json
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+>>>>>>> origin/main

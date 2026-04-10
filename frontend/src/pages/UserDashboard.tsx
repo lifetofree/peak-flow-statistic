@@ -12,7 +12,7 @@ export default function UserDashboard() {
   const profileQuery = useQuery({
     queryKey: ['userProfile', token],
     queryFn: () => fetchUserProfile(token!),
-    enabled: !!token,
+    enabled: Boolean(token),
   });
 
   const entriesQuery = useQuery({
