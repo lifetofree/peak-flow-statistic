@@ -179,12 +179,6 @@ export default function AdminUserDetail() {
 
   // Sort dates descending (newest first)
   const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-  
-  const totalDays = sortedDates.length;
-  const totalPages = Math.ceil(totalDays / daysPerPage);
-  const startIdx = (entryPage - 1) * daysPerPage;
-  const endIdx = startIdx + daysPerPage;
-  const paginatedDates = sortedDates.slice(startIdx, endIdx);
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">

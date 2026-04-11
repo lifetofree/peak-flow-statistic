@@ -81,7 +81,6 @@ export default function UserDashboard() {
   });
 
   const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-  const totalDays = sortedDates.length;
 
   // For list mode, show all dates
   const paginatedDates = sortedDates;
