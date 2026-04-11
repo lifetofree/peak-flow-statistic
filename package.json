@@ -1,0 +1,17 @@
+{
+  "name": "peakflowstat",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "worker"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "dev:frontend": "npm run dev",
+    "dev:worker": "npm run dev",
+    "build:frontend": "npm run build",
+    "build:worker": "npm run build"
+  }
+}
