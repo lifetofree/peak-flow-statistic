@@ -814,7 +814,7 @@ After deploying, add DNS manually in Cloudflare Dashboard → **allergyclinic.cc
 
 > **Note:** Do NOT use `www.peakflowstat.allergyclinic.cc` — third-level subdomains are not covered by Universal SSL and require Advanced Certificate Manager.
 
-> **Note:** Do NOT connect the Pages project to GitLab CI/CD — the repo root contains `worker/wrangler.toml` which causes the Pages build pipeline to run `npx wrangler deploy` instead of `npm run build`.
+> **Note:** GitHub Actions workflows handle CI/CD automatically on push to main branch. The `.github/workflows/` directory contains deployment configurations for both Worker and Frontend.
 
 ### Cost Comparison
 
