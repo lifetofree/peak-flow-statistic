@@ -2,7 +2,7 @@
 
 ## Deployment Summary
 **Date**: 2026-04-11
-**Branch**: main (production)
+**Branch**: main (production) 
 **Version**: v1.2.0
 
 ## Changes Deployed
