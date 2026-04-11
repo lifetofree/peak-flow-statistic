@@ -73,6 +73,7 @@ deploy_worker:
     - npm install -g wrangler@${WRANGLER_VERSION}
     - cd worker
     - npm ci --legacy-peer-deps
+    - wrangler whoami
   script:
     - wrangler deploy
   environment:
@@ -93,7 +94,7 @@ deploy_frontend_production:
     - npm install @rollup/rollup-linux-x64-gnu
   script:
     - npm run build
-    - wrangler pages deploy dist --project-name=peakflowstat --branch=main --commit-description="Frontend production deploy"
+    - wrangler pages deploy dist --project-name=peakflowstat --branch=main --commit-message="Frontend production deploy"
   environment:
     name: production
     url: https://peakflowstat.allergyclinic.cc
