@@ -8,7 +8,7 @@ variables:
   NODE_VERSION: "20"
   WRANGLER_VERSION: "latest"
   CF_ACCOUNT_ID: "c5858a5cab50c140f0997ba9d4b32e22"
-  CLOUDFLARE_API_TOKEN: "cfut_k8wzosL12exX8Fx4L8oTapDTNKhJji4I4Qm3Lahy6c760549"
+  CLOUDFLARE_API_TOKEN: "YOUR_CLOUDFLARE_TOKEN_HERE"
 
 # Build on pfs branch for preview testing
 build_frontend_pfs:
