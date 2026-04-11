@@ -41,7 +41,7 @@ jobs:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: wrangler deploy
 
-  # Deploy Frontend to GitHub Pages
+  # Deploy Frontend to Cloudflare Pages
   deploy-frontend:
     runs-on: ubuntu-latest
     steps:
@@ -64,22 +64,9 @@ jobs:
           cd frontend
           npm run build
       
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          path: frontend/dist
-
-  # Deploy GitHub Pages
-  deploy-pages:
-    needs: deploy-frontend
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=peakflowstat
