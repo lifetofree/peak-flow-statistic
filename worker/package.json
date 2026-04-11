@@ -1,0 +1,19 @@
+{
+  "name": "peakflowstat-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --config wrangler.dev.toml",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --config wrangler.staging.toml"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.4.2",
+    "hono": "^4.6.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241127.0",
+    "wrangler": "^3.93.0"
+  }
+}

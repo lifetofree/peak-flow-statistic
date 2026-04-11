@@ -14,6 +14,7 @@ export default function UserDashboard() {
   const [entryPage, setEntryPage] = useState(1);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
   const cardsPerPage = 10;
+  const listEntriesPerPage = 80;
 
   const profileQuery = useQuery({
     queryKey: ['userProfile', token],
@@ -22,8 +23,8 @@ export default function UserDashboard() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['userEntries', token],
-    queryFn: () => fetchUserEntries(token!),
+    queryKey: ['userEntries', token, entryPage, viewMode],
+    queryFn: () => fetchUserEntries(token!, viewMode === 'list' ? listEntriesPerPage : cardsPerPage, undefined, undefined, entryPage),
     enabled: !!token,
   });
 
@@ -81,17 +82,11 @@ export default function UserDashboard() {
   });
 
   const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-  const totalDays = sortedDates.length;
 
-  // For list mode, show all dates
-  const paginatedDates = sortedDates;
+  const totalEntries = entriesQuery.data?.total ?? 0;
+  const totalPages = Math.ceil(totalEntries / (viewMode === 'list' ? listEntriesPerPage : cardsPerPage));
 
-  // Pagination for card view
-  const totalCards = allEntries.length;
-  const totalCardPages = Math.ceil(totalCards / cardsPerPage);
-  const cardStartIdx = (entryPage - 1) * cardsPerPage;
-  const cardEndIdx = cardStartIdx + cardsPerPage;
-  const paginatedCards = allEntries.slice(cardStartIdx, cardEndIdx);
+  const paginatedCards = allEntries;
 
   const renderPFCell = (entry: any) => {
     if (!entry) return <span className="text-gray-300">-</span>;
@@ -138,7 +133,10 @@ export default function UserDashboard() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => setViewMode('card')}
+              onClick={() => {
+                setViewMode('card');
+                setEntryPage(1);
+              }}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'card' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
@@ -147,7 +145,10 @@ export default function UserDashboard() {
               <LayoutGrid size={20} />
             </button>
             <button
-              onClick={() => setViewMode('list')}
+              onClick={() => {
+                setViewMode('list');
+                setEntryPage(1);
+              }}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
@@ -188,7 +189,7 @@ export default function UserDashboard() {
                 <EntryCard key={e.entry._id} data={e} />
               ))}
             </div>
-            {totalCardPages > 1 && (
+            {totalPages > 1 && (
               <div className="flex justify-center items-center gap-4 mt-4">
                 <button
                   onClick={() => setEntryPage((p) => Math.max(1, p - 1))}
@@ -198,11 +199,11 @@ export default function UserDashboard() {
                   <ChevronLeft size={20} />
                 </button>
                 <span className="text-sm font-medium text-gray-600">
-                  {entryPage} / {totalCardPages}
+                  {entryPage} / {totalPages}
                 </span>
                 <button
-                  onClick={() => setEntryPage((p) => Math.min(totalCardPages, p + 1))}
-                  disabled={entryPage === totalCardPages}
+                  onClick={() => setEntryPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={entryPage === totalPages}
                   className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
                 >
                   <ChevronLeft size={20} className="rotate-180" />
@@ -245,41 +246,62 @@ export default function UserDashboard() {
                     <th className="px-2 py-1 text-center font-semibold text-gray-500 bg-indigo-50/10">Note</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
-                  {paginatedDates.map((dateKey) => {
-                    const dateEntries = entriesByDate[dateKey] || [];
-                    const morningBeforeEntry = dateEntries.find((e: any) => e.entry.period === 'morning' && e.entry.medicationTiming === 'before');
-                    const morningAfterEntry = dateEntries.find((e: any) => e.entry.period === 'morning' && e.entry.medicationTiming === 'after');
-                    const eveningBeforeEntry = dateEntries.find((e: any) => e.entry.period === 'evening' && e.entry.medicationTiming === 'before');
-                    const eveningAfterEntry = dateEntries.find((e: any) => e.entry.period === 'evening' && e.entry.medicationTiming === 'after');
+               <tbody className="divide-y">
+                   {sortedDates.map((dateKey) => {
+                     const dateEntries = entriesByDate[dateKey] || [];
+                     const morningBeforeEntry = dateEntries.find((e: any) => e.entry.period === 'morning' && e.entry.medicationTiming === 'before');
+                     const morningAfterEntry = dateEntries.find((e: any) => e.entry.period === 'morning' && e.entry.medicationTiming === 'after');
+                     const eveningBeforeEntry = dateEntries.find((e: any) => e.entry.period === 'evening' && e.entry.medicationTiming === 'before');
+                     const eveningAfterEntry = dateEntries.find((e: any) => e.entry.period === 'evening' && e.entry.medicationTiming === 'after');
 
-                    const displayDate = morningBeforeEntry?.entry?.date || morningAfterEntry?.entry?.date || eveningBeforeEntry?.entry?.date || eveningAfterEntry?.entry?.date || dateKey;
+                     const displayDate = morningBeforeEntry?.entry?.date || morningAfterEntry?.entry?.date || eveningBeforeEntry?.entry?.date || eveningAfterEntry?.entry?.date || dateKey;
 
-                    return (
-                      <tr key={dateKey} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-2 py-2 whitespace-nowrap font-medium text-gray-700 border-r border-gray-200">
-                          {formatThaiDate(displayDate)}
-                        </td>
-                        <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderPFCell(morningBeforeEntry)}</td>
-                        <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderSpO2Cell(morningBeforeEntry)}</td>
-                        <td className="px-2 py-2 text-center border-r border-orange-200 bg-orange-50/10">{renderNoteCell(morningBeforeEntry, displayDate)}</td>
-                        <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderPFCell(morningAfterEntry)}</td>
-                        <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderSpO2Cell(morningAfterEntry)}</td>
-                        <td className="px-2 py-2 text-center border-r border-purple-200 bg-purple-50/10">{renderNoteCell(morningAfterEntry, displayDate)}</td>
-                        <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderPFCell(eveningBeforeEntry)}</td>
-                        <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderSpO2Cell(eveningBeforeEntry)}</td>
-                        <td className="px-2 py-2 text-center border-r border-indigo-200 bg-indigo-50/10">{renderNoteCell(eveningBeforeEntry, displayDate)}</td>
-                        <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderPFCell(eveningAfterEntry)}</td>
-                        <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderSpO2Cell(eveningAfterEntry)}</td>
-                        <td className="px-2 py-2 text-center bg-blue-50/10">{renderNoteCell(eveningAfterEntry, displayDate)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+                     return (
+                       <tr key={dateKey} className="hover:bg-gray-50 transition-colors">
+                         <td className="px-2 py-2 whitespace-nowrap font-medium text-gray-700 border-r border-gray-200">
+                           {formatThaiDate(displayDate)}
+                         </td>
+                         <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderPFCell(morningBeforeEntry)}</td>
+                         <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderSpO2Cell(morningBeforeEntry)}</td>
+                         <td className="px-2 py-2 text-center border-r border-orange-200 bg-orange-50/10">{renderNoteCell(morningBeforeEntry, displayDate)}</td>
+                         <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderPFCell(morningAfterEntry)}</td>
+                         <td className="px-2 py-2 text-center border-r border-orange-100 bg-orange-50/5">{renderSpO2Cell(morningAfterEntry)}</td>
+                         <td className="px-2 py-2 text-center border-r border-purple-200 bg-purple-50/10">{renderNoteCell(morningAfterEntry, displayDate)}</td>
+                         <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderPFCell(eveningBeforeEntry)}</td>
+                         <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderSpO2Cell(eveningBeforeEntry)}</td>
+                         <td className="px-2 py-2 text-center border-r border-indigo-200 bg-indigo-50/10">{renderNoteCell(eveningBeforeEntry, displayDate)}</td>
+                         <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderPFCell(eveningAfterEntry)}</td>
+                         <td className="px-2 py-2 text-center border-r border-indigo-100 bg-indigo-50/5">{renderSpO2Cell(eveningAfterEntry)}</td>
+                         <td className="px-2 py-2 text-center bg-blue-50/10">{renderNoteCell(eveningAfterEntry, displayDate)}</td>
+                       </tr>
+                     );
+                   })}
+                 </tbody>
+               </table>
+             </div>
+             {totalPages > 1 && (
+               <div className="flex justify-center items-center gap-4 mt-4">
+                 <button
+                   onClick={() => setEntryPage((p) => Math.max(1, p - 1))}
+                   disabled={entryPage === 1}
+                   className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                 >
+                   <ChevronLeft size={20} />
+                 </button>
+                 <span className="text-sm font-medium text-gray-600">
+                   {entryPage} / {totalPages}
+                 </span>
+                 <button
+                   onClick={() => setEntryPage((p) => Math.min(totalPages, p + 1))}
+                   disabled={entryPage === totalPages}
+                   className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+                 >
+                   <ChevronLeft size={20} className="rotate-180" />
+                 </button>
+               </div>
+             )}
+           </>
+         )}
       </div>
 
       {viewingNote && (

@@ -46,7 +46,7 @@ export default function AdminUserDetail() {
 
   const entriesQuery = useQuery({
     queryKey: ['adminEntries', id, entryPage],
-    queryFn: () => fetchAdminEntries(entryPage, id, 0), // 0 = fetch all entries
+    queryFn: () => fetchAdminEntries(entryPage, id, entriesPerPage),
     enabled: Boolean(id),
   });
 
@@ -179,12 +179,6 @@ export default function AdminUserDetail() {
 
   // Sort dates descending (newest first)
   const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-  
-  const totalDays = sortedDates.length;
-  const totalPages = Math.ceil(totalDays / daysPerPage);
-  const startIdx = (entryPage - 1) * daysPerPage;
-  const endIdx = startIdx + daysPerPage;
-  const paginatedDates = sortedDates.slice(startIdx, endIdx);
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
@@ -372,13 +366,10 @@ export default function AdminUserDetail() {
             {t('entry.noEntries')}
           </div>
         ) : (() => {
-              const totalDates = entriesQuery.data.total;
-              if (totalDates === 0) return null;
+              const totalEntries = entriesQuery.data.total;
+              if (totalEntries === 0) return null;
               
-              const totalPages = Math.ceil(totalDates / entriesPerPage);
-              const startIdx = (entryPage - 1) * entriesPerPage;
-              const endIdx = startIdx + entriesPerPage;
-              const paginatedDates = sortedDates.slice(startIdx, endIdx);
+              const totalPages = Math.ceil(totalEntries / entriesPerPage);
               
               return (
                 <>
@@ -428,7 +419,7 @@ export default function AdminUserDetail() {
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {paginatedDates.map((dateKey) => {
+                        {sortedDates.map((dateKey) => {
                           const dateEntries = entriesByDate[dateKey] || [];
                           const morningBeforeEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'before');
                           const morningAfterEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'after');

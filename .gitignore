@@ -10,6 +10,14 @@ dist/
 build/
 frontend/dist/
 
+# Compiled JavaScript (TypeScript compilation artifacts in worker)
+worker/src/**/*.js
+worker/src/*.js
+
+# Keep TypeScript files
+!worker/src/**/*.ts
+!worker/src/*.ts
+
 # Wrangler
 .wrangler/
 worker/.wrangler/
@@ -19,6 +27,7 @@ frontend/.wrangler/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+*.sql
 
 # Environment
 .env

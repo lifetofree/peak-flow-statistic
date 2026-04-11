@@ -97,6 +97,7 @@ Controllers must NOT contain business logic or call models directly. All mutatio
 - **Server state:** TanStack Query (React Query) for all API data — caching, refetching, optimistic updates.
 - **Local state:** React `useState` / `useReducer` only. No global state library needed.
 - **API client:** Plain `fetch` wrapped in typed functions in `frontend/src/api/`. No Axios.
+- **Pagination:** Backend pagination with `page` and `pageSize` parameters. Frontend only manages current page state and displays paginated results from API. Never fetch all data and paginate on the frontend.
 
 ---
 
@@ -203,13 +204,20 @@ Zone calculation utility: `frontend/src/utils/zone.ts` and `backend/src/services
 
 ```
 ┌──────────────────────────┐
-│  User name               │
+│  User name + View Toggle │
 ├──────────────────────────┤
-│  Recent entries list     │
+│  Entries (Card or List)  │
+│  - Card: 10 items/page   │
+│  - List: 80 items/page   │
+│  - Prev/Next pagination  │
 ├──────────────────────────┤
 │  [+ Add Entry] button    │
 └──────────────────────────┘
 ```
+
+**View Modes:**
+- **Card View**: Individual entry cards with full details, 10 entries per page
+- **List View**: Compact table view grouping entries by date (morning/evening × before/after medication), 80 entries per page (20 days)
 
 ---
 
@@ -236,7 +244,7 @@ All request bodies pass through Zod validation middleware.
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/u/:token` | Validate token, return user profile (incl. personalBest, excl. adminNote) |
-| `GET` | `/api/u/:token/entries` | Paginated entries (20/page), `?from=&to=` date filter |
+| `GET` | `/api/u/:token/entries` | Paginated entries. Query params: `?page=&pageSize=&from=&to=` (default: page 1, fetch all if pageSize=0) |
 | `POST` | `/api/u/:token/entries` | Create a new entry |
 | `GET` | `/api/u/:token/export` | Export entries as CSV, `?from=&to=` date filter |
 
@@ -257,7 +265,7 @@ All request bodies pass through Zod validation middleware.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/admin/entries` | All entries, paginated (`?page=&userId=`) |
+| `GET` | `/api/admin/entries` | Paginated entries. Query params: `?page=&pageSize=&userId=` (default: page 1, pageSize 20) |
 | `PATCH` | `/api/admin/entries/:id` | Edit entry (writes AuditLog) |
 | `DELETE` | `/api/admin/entries/:id` | Delete entry (writes AuditLog) |
 
@@ -266,6 +274,57 @@ All request bodies pass through Zod validation middleware.
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/admin/audit` | Paginated audit log, filterable by `?userId=&action=` |
+
+---
+
+## Pagination Implementation
+
+All paginated endpoints use backend pagination with `page` and `pageSize` query parameters:
+
+- **page**: Page number (1-indexed, default: 1)
+- **pageSize**: Number of items per page (default varies by endpoint, 0 = fetch all)
+
+### Response Format
+
+```json
+{
+  "entries": [...],
+  "total": 100,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+### Pagination Configuration by Page
+
+| Page | Endpoint | Default PageSize | Notes |
+|------|----------|------------------|-------|
+| User Dashboard (List Mode) | `/api/u/:token/entries` | 80 | 20 days × 4 entries/day |
+| User Dashboard (Card Mode) | `/api/u/:token/entries` | 10 | 10 entry cards |
+| Admin User Detail | `/api/admin/entries` | 80 | 20 days × 4 entries/day |
+| Entry History | `/api/u/:token/entries` | 20 | Full entry list |
+| Admin Entries | `/api/admin/entries` | 20 | All entries, filterable by userId |
+
+### Frontend Implementation
+
+- **TanStack Query**: Automatically caches paginated results per page
+- **Pagination State**: `page` state managed in component, resets to 1 on filter changes
+- **Query Keys**: Include `page` and `pageSize` in query keys for proper cache invalidation
+
+### Backend Implementation (Cloudflare Workers + D1)
+
+```typescript
+const page = parseInt(c.req.query('page') || '1');
+const pageSize = parseInt(c.req.query('pageSize') || '20');
+const offset = pageSize > 0 ? (page - 1) * pageSize : 0;
+
+const [items, total] = await Promise.all([
+  db.find('table', filter, { orderBy, limit: pageSize > 0 ? pageSize : undefined, offset }),
+  db.count('table', filter),
+]);
+```
+
+**Important**: Always return the actual `pageSize` from the request (not the hardcoded constant) in the response so the frontend knows how many items were returned.
 
 ---
 
@@ -292,7 +351,7 @@ All request bodies pass through Zod validation middleware.
 - Do NOT use the TypeScript `any` type.
 - Do NOT DELETE or UPDATE AuditLog records.
 - Do NOT expose MongoDB `_id` values in short links or public-facing URLs.
-- Do NOT paginate with `skip` on large collections — use cursor-based pagination for the admin entry list if the dataset is expected to grow large.
+- All list views (user dashboard list mode, admin user detail, admin entries) MUST use backend pagination with `page` and `pageSize` parameters. Never fetch all entries and paginate on the frontend.
 - Do NOT put business logic in controllers — use the services layer.
 - Do NOT call Mongoose models directly from controllers.
 - Do NOT use `useEffect` + `fetch` for data loading — use TanStack Query.

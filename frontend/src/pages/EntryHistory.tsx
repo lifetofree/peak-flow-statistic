@@ -12,7 +12,7 @@ export default function EntryHistory() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['userEntries', token, page],
-    queryFn: () => fetchUserEntries(token!, page),
+    queryFn: () => fetchUserEntries(token!, undefined, undefined, undefined, page),
     enabled: !!token,
   });
 

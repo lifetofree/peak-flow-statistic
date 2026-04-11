@@ -76,7 +76,7 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
     };
   });
 
-  return c.json({ entries: formattedEntries, total, page, pageSize: PAGE_SIZE });
+  return c.json({ entries: formattedEntries, total, page, pageSize });
 });
 
 const createEntrySchema = z.object({
