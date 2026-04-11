@@ -9,10 +9,28 @@ frontend/dist/
 worker/src/**/*.js
 worker/src/**/*.d.ts
 
+# Environment files (local development)
+# DO NOT COMMIT THESE - Contains secrets!
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+!frontend/.env.example
+
+# Worker environment variables
+worker/.dev.vars
+worker/.env
+!worker/.dev.vars.example
+
 # Local SQLite databases
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+# Wrangler local state
+.wrangler/
+worker/.wrangler/
 
 # Logs
 logs/
