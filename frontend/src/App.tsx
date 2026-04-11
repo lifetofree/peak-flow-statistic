@@ -31,7 +31,7 @@ export default function App() {
   const { t } = useTranslation();
   
   useEffect(() => {
-    document.title = t('common.title');
+    document.title = t('app.title');
   }, [t]);
   
   return (

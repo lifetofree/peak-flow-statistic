@@ -9,9 +9,10 @@ export function fetchUserEntries(
   token: string,
   pageSize?: number,
   from?: string,
-  to?: string
+  to?: string,
+  page: number = 1
 ): Promise<{ entries: EntryWithZone[]; total: number; page: number; pageSize: number }> {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ page: String(page) });
   if (pageSize !== undefined) params.set('pageSize', String(pageSize));
   if (from) params.set('from', from);
   if (to) params.set('to', to);

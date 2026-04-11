@@ -45,7 +45,7 @@ export default function AdminUserDetail() {
 
   const entriesQuery = useQuery({
     queryKey: ['adminEntries', id, entryPage],
-    queryFn: () => fetchAdminEntries(entryPage, id, 0), // 0 = fetch all entries
+    queryFn: () => fetchAdminEntries(entryPage, id, entriesPerPage),
     enabled: Boolean(id),
   });
 
@@ -365,13 +365,10 @@ export default function AdminUserDetail() {
             {t('entry.noEntries')}
           </div>
         ) : (() => {
-              const totalDates = entriesQuery.data.total;
-              if (totalDates === 0) return null;
+              const totalEntries = entriesQuery.data.total;
+              if (totalEntries === 0) return null;
               
-              const totalPages = Math.ceil(totalDates / entriesPerPage);
-              const startIdx = (entryPage - 1) * entriesPerPage;
-              const endIdx = startIdx + entriesPerPage;
-              const paginatedDates = sortedDates.slice(startIdx, endIdx);
+              const totalPages = Math.ceil(totalEntries / entriesPerPage);
               
               return (
                 <>
@@ -421,7 +418,7 @@ export default function AdminUserDetail() {
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {paginatedDates.map((dateKey) => {
+                        {sortedDates.map((dateKey) => {
                           const dateEntries = entriesByDate[dateKey] || [];
                           const morningBeforeEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'before');
                           const morningAfterEntry = dateEntries.find((e: any) => e.period === 'morning' && e.medicationTiming === 'after');

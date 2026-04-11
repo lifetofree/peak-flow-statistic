@@ -6,31 +6,40 @@ node_modules/
 dist/
 build/
 frontend/dist/
+
+# Compiled JavaScript (TypeScript compilation artifacts in worker)
 worker/src/**/*.js
+worker/src/*.js
 worker/src/**/*.d.ts
 
-# Environment files (local development)
-# DO NOT COMMIT THESE - Contains secrets!
-.env
-.env.local
-.env.development
-.env.staging
-.env.production
-!frontend/.env.example
+# Keep TypeScript files
+!worker/src/**/*.ts
+!worker/src/*.ts
 
-# Worker environment variables
-worker/.dev.vars
-worker/.env
-!worker/.dev.vars.example
+# Wrangler
+.wrangler/
+worker/.wrangler/
+frontend/.wrangler/
 
 # Local SQLite databases
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+*.sql
 
-# Wrangler local state
-.wrangler/
-worker/.wrangler/
+# Environment files (local development)
+# DO NOT COMMIT THESE - Contains secrets!
+.env
+.env.local
+!frontend/.env.example
+!frontend/.env.development
+!frontend/.env.staging
+!frontend/.env.production
+
+# Worker environment variables
+worker/.dev.vars
+worker/.env
+!worker/.dev.vars.example
 
 # Logs
 logs/

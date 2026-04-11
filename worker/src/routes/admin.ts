@@ -304,7 +304,7 @@ app.get('/admin/entries', async (c) => {
     };
   }));
 
-  return c.json({ entries: formattedEntries, total, page, pageSize: PAGE_SIZE });
+  return c.json({ entries: formattedEntries, total, page, pageSize });
 });
 
 const updateEntrySchema = z.object({
