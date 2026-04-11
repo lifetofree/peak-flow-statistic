@@ -142,7 +142,7 @@ export default function AdminUserDetail() {
     );
   }
 
-  // Group entries by date and get latest entry for each period+medication combination
+  // Group entries by date and get latest entry for each period+medication combination 
   const allEntries = entriesQuery.data?.entries ?? [];
   
   // Create a map for each date with the latest entry for each period/medication combination
