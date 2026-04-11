@@ -89,13 +89,17 @@ deploy_worker:
 deploy_frontend_production:
   stage: deploy
   image: node:${NODE_VERSION}
+  dependencies: []  # Prevent artifacts/conflicts from worker deployment
   before_script:
     - npm install -g wrangler@${WRANGLER_VERSION}
     - cd frontend
     - npm ci --legacy-peer-deps
     - npm install @rollup/rollup-linux-x64-gnu
+    - wrangler pages project list || echo "Checking Pages access"
   script:
     - npm run build
+    # Try to create project if it doesn't exist, otherwise deploy
+    - wrangler pages project create peakflowstat --production-branch=main || echo "Project may already exist"
     - wrangler pages deploy dist --project-name=peakflowstat --branch=main --commit-message="Frontend production deploy"
   environment:
     name: production
