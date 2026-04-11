@@ -27,4 +27,16 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    // Disable source maps for production to reduce build complexity
+    sourcemap: false,
+    // Reduce chunk size warnings
+    chunkSizeWarningLimit: 1000,
+    // Optimize dependencies
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
 });
