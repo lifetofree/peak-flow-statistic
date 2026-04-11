@@ -52,12 +52,15 @@ build_worker:
   image: node:${NODE_VERSION}
   before_script:
     - cd worker
-    - npm ci
+    - npm ci --legacy-peer-deps
   script:
-    - npm run build
+    - echo "Worker build - Wrangler handles TypeScript directly"
   artifacts:
     paths:
-      - worker/dist
+      - worker/src
+      - worker/wrangler.toml
+      - worker/package.json
+      - worker/tsconfig.json
     expire_in: 1 week
   only:
     - main
@@ -69,6 +72,7 @@ deploy_worker:
   before_script:
     - npm install -g wrangler@${WRANGLER_VERSION}
     - cd worker
+    - npm ci --legacy-peer-deps
   script:
     - wrangler deploy
   environment:
