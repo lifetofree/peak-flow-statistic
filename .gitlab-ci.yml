@@ -16,7 +16,8 @@ build_frontend_pfs:
   image: node:${NODE_VERSION}
   before_script:
     - cd frontend
-    - npm ci
+    - npm ci --legacy-peer-deps
+    - npm install @rollup/rollup-linux-x64-gnu
   script:
     - npm run build
   artifacts:
@@ -34,7 +35,8 @@ build_frontend_main:
   image: node:${NODE_VERSION}
   before_script:
     - cd frontend
-    - npm ci --silent --no-audit --no-fund
+    - npm ci --legacy-peer-deps --silent --no-audit --no-fund
+    - npm install @rollup/rollup-linux-x64-gnu --silent --no-audit --no-fund
   script:
     - npm run build --silent
   artifacts:
@@ -83,7 +85,8 @@ deploy_frontend_production:
   before_script:
     - npm install -g wrangler@${WRANGLER_VERSION}
     - cd frontend
-    - npm ci
+    - npm ci --legacy-peer-deps
+    - npm install @rollup/rollup-linux-x64-gnu
   script:
     - npm run build
     - wrangler pages deploy dist --project-name=peakflowstat --branch=main --commit-description="Frontend production deploy"
