@@ -3,7 +3,6 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
 import {
   ChevronLeft,
   Edit2,
@@ -343,7 +342,7 @@ export default function AdminUserDetail() {
         ) : (
           <div className="prose prose-sm max-w-none bg-gray-50 p-4 rounded-xl border border-dashed">
             {user.adminNote ? (
-              <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{user.adminNote}</ReactMarkdown>
+              <ReactMarkdown>{user.adminNote}</ReactMarkdown>
             ) : (
               <p className="text-gray-400 italic">{t('common.noData')}</p>
             )}
@@ -518,7 +517,7 @@ export default function AdminUserDetail() {
                 </button>
               </div>
               <div className="p-4 prose prose-sm max-w-none">
-                <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{viewingNote.note}</ReactMarkdown>
+                <ReactMarkdown>{viewingNote.note}</ReactMarkdown>
               </div>
               <div className="p-4 border-t">
                 <button

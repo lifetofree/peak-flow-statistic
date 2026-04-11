@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
-import rehypeSanitize from 'rehype-sanitize';
 import { FileText, X, ChevronLeft } from 'lucide-react';
 import type { Entry } from '../types';
 import { formatThaiDate } from '../utils/date';
@@ -260,7 +259,7 @@ export default function PeakFlowTable({ entries }: Props) {
               </button>
             </div>
             <div className="p-4 prose prose-sm max-w-none">
-              <ReactMarkdown rehypePlugins={[rehypeSanitize]}>
+              <ReactMarkdown>
                 {viewingNote.note}
               </ReactMarkdown>
             </div>

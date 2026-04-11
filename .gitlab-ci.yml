@@ -1,95 +1,19 @@
-image: node:18
-
-stages:
-  - build
-  - deploy
-
-variables:
-  NODE_VERSION: "20"
-  WRANGLER_VERSION: "latest"
-  CF_ACCOUNT_ID: "c5858a5cab50c140f0997ba9d4b32e22"
-  CLOUDFLARE_API_TOKEN: "cfut_k8wzosL12exX8Fx4L8oTapDTNKhJji4I4Qm3Lahy6c760549"
-
-# Build on pfs branch for preview testing
-build_frontend_pfs:
-  stage: build
-  image: node:${NODE_VERSION}
+# The Docker image that will be used to build your app
+image: node:20
+create-pages:
+  pages:
+    # The folder that contains the files to be exposed at the Page URL
+    publish: public
+  rules:
+    # This ensures that only pushes to the default branch will trigger
+    # a pages deploy
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  # Functions that should be executed before the build script is run
   before_script:
     - cd frontend
-    - npm ci
+    - npm ci --legacy-peer-deps
+    - npm install @rollup/rollup-linux-x64-gnu
+    - npm run build
+    - cp -r dist public
   script:
     - npm run build
-  artifacts:
-    paths:
-      - frontend/dist
-    expire_in: 1 week
-  only:
-    - pfs
-  except:
-    - main
-
-# Build on main branch for production
-build_frontend_main:
-  stage: build
-  image: node:${NODE_VERSION}
-  before_script:
-    - cd frontend
-    - npm ci
-  script:
-    - npm run build
-  artifacts:
-    paths:
-      - frontend/dist
-    expire_in: 1 week
-  only:
-    - main
-
-# Build worker on main only
-build_worker:
-  stage: build
-  image: node:${NODE_VERSION}
-  before_script:
-    - cd worker
-    - npm ci
-  script:
-    - npm run build
-  artifacts:
-    paths:
-      - worker/dist
-    expire_in: 1 week
-  only:
-    - main
-
-# Manual deploy worker to production
-deploy_worker:
-  stage: deploy
-  image: node:${NODE_VERSION}
-  before_script:
-    - npm install -g wrangler@${WRANGLER_VERSION}
-    - cd worker
-  script:
-    - wrangler deploy
-  environment:
-    name: production
-    url: https://api.peakflowstat.allergyclinic.cc
-  only:
-    - main
-  when: manual
-
-# Deploy frontend to production (manual)
-deploy_frontend_production:
-  stage: deploy
-  image: node:${NODE_VERSION}
-  before_script:
-    - npm install -g wrangler@${WRANGLER_VERSION}
-    - cd frontend
-    - npm ci
-  script:
-    - npm run build
-    - wrangler pages deploy dist --project-name=peakflowstat --branch=main --commit-description="Frontend production deploy"
-  environment:
-    name: production
-    url: https://peakflowstat.allergyclinic.cc
-  only:
-    - main
-  when: manual
