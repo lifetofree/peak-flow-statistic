@@ -1,0 +1,24 @@
+# GitLab Pages deployment configuration
+# This runs alongside the existing .gitlab-ci.yml pipeline
+
+pages:
+  stage: deploy
+  image: node:20
+  dependencies:
+    - build_frontend_main
+  script:
+    - cd frontend
+    - echo "Deploying frontend to GitLab Pages"
+    # Create CNAME file for custom domain peakflowstat.allergyclinic.cc
+    - echo "peakflowstat.allergyclinic.cc" > public/CNAME
+    # Verify the public directory exists and contains built files
+    - ls -la public/
+  artifacts:
+    paths:
+      - public
+    expire_in: 30 days
+  environment:
+    name: production
+    url: https://peakflowstat.allergyclinic.cc
+  only:
+    - main
