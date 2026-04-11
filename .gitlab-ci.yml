@@ -1,4 +1,4 @@
-image: node:18
+image: node:20
 
 stages:
   - build
@@ -34,9 +34,9 @@ build_frontend_main:
   image: node:${NODE_VERSION}
   before_script:
     - cd frontend
-    - npm ci
+    - npm ci --silent --no-audit --no-fund
   script:
-    - npm run build
+    - npm run build --silent
   artifacts:
     paths:
       - frontend/dist
