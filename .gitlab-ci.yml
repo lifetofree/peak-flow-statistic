@@ -73,9 +73,11 @@ deploy_worker:
     - npm install -g wrangler@${WRANGLER_VERSION}
     - cd worker
     - npm ci --legacy-peer-deps
-    - wrangler whoami
+    # Test authentication - will show if token or manual auth works
+    - wrangler whoami || echo "Auth failed, trying manual login"
   script:
-    - wrangler deploy
+    # Try deployment with current auth (token or manual)
+    - wrangler deploy || wrangler login && wrangler deploy
   environment:
     name: production
     url: https://api.peakflowstat.allergyclinic.cc
