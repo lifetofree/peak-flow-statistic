@@ -4,13 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { fetchUser, fetchAdminEntries, deleteUser, getAdminExportUrl } from '../api/admin';
-import { groupEntriesByDate, convertGroupedToArray, getSortedDates } from '../utils/entryGrouping';
+import { groupEntriesByDate, convertGroupedToArray } from '../utils/entryGrouping';
 import UserProfile from '../components/admin/UserProfile';
 import UserShareLink from '../components/admin/UserShareLink';
 import UserAdminNote from '../components/admin/UserAdminNote';
 import UserEntriesTable from '../components/admin/UserEntriesTable';
 import NoteModal from '../components/admin/NoteModal';
-import DateFilter from '../components/DateFilter';
 
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
@@ -20,8 +19,6 @@ export default function AdminUserDetail() {
 
   const [entryPage, setEntryPage] = useState(1);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
   const daysPerPage = 20;
   const entriesPerPage = daysPerPage * 4;
 
@@ -32,8 +29,8 @@ export default function AdminUserDetail() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['adminEntries', id, entryPage, fromDate, toDate],
-    queryFn: () => fetchAdminEntries(entryPage, id, entriesPerPage, fromDate || undefined, toDate || undefined),
+    queryKey: ['adminEntries', id, entryPage],
+    queryFn: () => fetchAdminEntries(entryPage, id, entriesPerPage),
     enabled: Boolean(id),
   });
 
@@ -54,7 +51,7 @@ export default function AdminUserDetail() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const exportUrl = getAdminExportUrl(id!, fromDate || undefined, toDate || undefined);
+      const exportUrl = getAdminExportUrl(id!);
       const res = await fetch(exportUrl, { headers });
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();
@@ -73,22 +70,6 @@ export default function AdminUserDetail() {
     if (confirm(t('common.confirm') + '?')) {
       deleteMutation.mutate();
     }
-  };
-
-  const handleFromDateChange = (date: string) => {
-    setFromDate(date);
-    setEntryPage(1);
-  };
-
-  const handleToDateChange = (date: string) => {
-    setToDate(date);
-    setEntryPage(1);
-  };
-
-  const handleClearFilter = () => {
-    setFromDate('');
-    setToDate('');
-    setEntryPage(1);
   };
 
   if (userQuery.isLoading) {
@@ -128,27 +109,19 @@ export default function AdminUserDetail() {
         </button>
       </div>
 
-      <UserProfile 
-        user={user} 
-        queryClient={queryClient} 
+      <UserProfile
+        user={user}
+        queryClient={queryClient}
         onDelete={handleDelete}
         onExport={handleExport}
       />
 
       <UserShareLink shortCode={user.shortCode} />
 
-      <UserAdminNote 
-        userId={user._id} 
-        adminNote={user.adminNote || ''} 
-        queryClient={queryClient} 
-      />
-
-      <DateFilter
-        fromDate={fromDate}
-        toDate={toDate}
-        onFromDateChange={handleFromDateChange}
-        onToDateChange={handleToDateChange}
-        onClear={handleClearFilter}
+      <UserAdminNote
+        userId={user._id}
+        adminNote={user.adminNote || ''}
+        queryClient={queryClient}
       />
 
       {entriesQuery.isLoading ? (

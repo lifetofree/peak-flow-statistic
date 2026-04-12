@@ -4,16 +4,23 @@ import { z } from 'zod';
 import { DatabaseClient } from '../lib/database';
 import { calculateZone } from './zone';
 import type { Env } from '../index';
+import type { UserRecord } from './admin/types';
 
-const app = new Hono<{ Bindings: Env }>();
+type FilterValue = string | number | null | (string | number)[] | { $gte?: string | number; $lte?: string | number };
+type Filter = Record<string, FilterValue>;
 
-const PAGE_SIZE = 20;
+type Variables = {
+  userId: string;
+  user: UserRecord;
+};
+
+const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
 const validateShortLink = async (c: any, next: any) => {
   const { token } = c.req.param();
   const db = new DatabaseClient(c.env);
 
-  const user = await db.findOne<any>('users', { short_token: token, deleted_at: null });
+  const user = await db.findOne<UserRecord>('users', { short_token: token, deleted_at: null });
   if (!user) return c.json({ error: 'Not found' }, 404);
 
   c.set('userId', user.id);
@@ -40,32 +47,27 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const pageSizeParam = c.req.query('pageSize');
   const pageSize = pageSizeParam ? parseInt(pageSizeParam) : 0;
-  const offset = pageSize > 0 ? (page - 1) * pageSize : 0;
   const from = c.req.query('from');
   const to = c.req.query('to');
 
-  let filter: Record<string, any> = { user_id: userId };
+  const filter: Filter = { user_id: userId };
+  const dateFilter: Record<string, any> = {};
+  if (from) dateFilter.$gte = from;
+  if (to) dateFilter.$lte = to;
+  if (from || to) filter.date = dateFilter as FilterValue;
+
+  const offset = pageSize > 0 ? (page - 1) * pageSize : 0;
 
   const [entries, total] = await Promise.all([
-    db.find<any>('entries', filter, { orderBy: 'date', order: 'DESC' }),
+    db.find<any>('entries', filter, {
+      orderBy: 'date', order: 'DESC',
+      limit: pageSize > 0 ? pageSize : undefined,
+      offset: pageSize > 0 ? offset : undefined,
+    }),
     db.count('entries', filter),
   ]);
 
-  let filteredEntries = entries;
-  if (from) {
-    filteredEntries = filteredEntries.filter((e: any) => e.date >= from);
-  }
-  if (to) {
-    filteredEntries = filteredEntries.filter((e: any) => e.date <= to);
-  }
-
-  const paginatedEntries = pageSize > 0 
-    ? filteredEntries.slice(offset, offset + pageSize)
-    : filteredEntries;
-
-  const filteredTotal = filteredEntries.length;
-
-  const formattedEntries = paginatedEntries.map((e: any) => {
+  const formattedEntries = entries.map((e: any) => {
     let peakFlowReadings: number[] = [];
     try {
       peakFlowReadings = JSON.parse(e.peak_flow_readings || '[]');
@@ -92,7 +94,7 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
     };
   });
 
-  return c.json({ entries: formattedEntries, total: filteredTotal, page, pageSize });
+  return c.json({ entries: formattedEntries, total, page, pageSize });
 });
 
 const createEntrySchema = z.object({
@@ -115,7 +117,7 @@ app.post('/u/:token/entries', validateShortLink, zValidator('json', createEntryS
     user_id: userId,
     date: data.date,
     peak_flow_readings: JSON.stringify(data.peakFlowReadings),
-    peak_flow: Math.max(...data.peakFlowReadings),
+    peak_flow: Math.max(data.peakFlowReadings[0], data.peakFlowReadings[1], data.peakFlowReadings[2]),
     spo2: data.spO2,
     medication_timing: data.medicationTiming,
     period: data.period,
@@ -161,7 +163,8 @@ app.get('/u/:token/export', validateShortLink, async (c) => {
   }
 
   c.header('Content-Type', 'text/csv');
-  c.header('Content-Disposition', `attachment; filename="${user.first_name}-${user.last_name}-entries.csv"`);
+  const safeName = `${user.first_name}-${user.last_name}`.replace(/[^a-zA-Z0-9-]/g, '_');
+  c.header('Content-Disposition', `attachment; filename="${safeName}-entries.csv"`);
   return c.body(csv);
 });
 

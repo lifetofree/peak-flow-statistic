@@ -61,7 +61,7 @@ export interface FormattedEntry {
   medicationTiming: string;
   period: string;
   note: string;
-  zone: any;
+  zone: { zone: string; percentage: number } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -72,6 +72,6 @@ export interface FormattedAuditLog {
   targetId: string;
   targetModel: string;
   action: string;
-  diff: any;
+  diff: { before: Record<string, unknown> | null; after: Record<string, unknown> | null };
   timestamp: string;
 }

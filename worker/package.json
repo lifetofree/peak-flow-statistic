@@ -7,7 +7,8 @@
     "dev": "wrangler dev --config wrangler.dev.toml",
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --config wrangler.staging.toml",
-    "build": "echo 'Skipping TypeScript build - Wrangler handles TS directly'"
+    "build": "echo 'Skipping TypeScript build - Wrangler handles TS directly'",
+    "test": "vitest run"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.2",
@@ -17,6 +18,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241230.0",
     "typescript": "^5.7.2",
+    "vitest": "^4.1.4",
     "wrangler": "^4.80.0"
   }
 }

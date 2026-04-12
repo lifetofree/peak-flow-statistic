@@ -86,5 +86,6 @@ export interface CreateEntryInput {
   peakFlowReadings: [number, number, number];
   spO2: number;
   medicationTiming: 'before' | 'after';
+  period: 'morning' | 'evening';
   note?: string;
 }

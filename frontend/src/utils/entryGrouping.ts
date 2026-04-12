@@ -22,6 +22,7 @@ export function groupEntriesByDate(entries: Entry[]): GroupedEntries {
   const grouped: GroupedEntries = {};
   
   entries.forEach((entry) => {
+    if (!entry.date) return;
     const dateKey = entry.date.split('T')[0];
     const subKey = `${entry.period}-${entry.medicationTiming}`;
     

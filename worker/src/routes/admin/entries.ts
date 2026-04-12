@@ -57,51 +57,41 @@ entriesApp.get('/admin/entries', async (c) => {
   const page = parseInt(c.req.query('page') || '1');
   const userId = c.req.query('userId');
   const pageSize = c.req.query('pageSize') ? parseInt(c.req.query('pageSize')!) : PAGE_SIZE;
-  const offset = pageSize > 0 ? (page - 1) * pageSize : 0;
   const from = c.req.query('from');
   const to = c.req.query('to');
 
-  let filter: Record<string, any> = {};
+  const filter: Record<string, any> = {};
   if (userId) filter.user_id = userId;
+  const dateFilter: Record<string, any> = {};
+  if (from) dateFilter.$gte = from;
+  if (to) dateFilter.$lte = to;
+  if (from || to) filter.date = dateFilter;
 
-  try {
-    const [entries, total] = await Promise.all([
-      db.find<EntryRecord>('entries', filter, { orderBy: 'date', order: 'DESC' }),
-      db.count('entries', filter),
-    ]);
+  const offset = pageSize > 0 ? (page - 1) * pageSize : 0;
 
-    let filteredEntries = entries;
-    if (from) {
-      filteredEntries = filteredEntries.filter(e => e.date >= from);
-    }
-    if (to) {
-      filteredEntries = filteredEntries.filter(e => e.date <= to);
-    }
+  const [entries, total] = await Promise.all([
+    db.find<EntryRecord>('entries', filter, {
+      orderBy: 'date', order: 'DESC',
+      limit: pageSize > 0 ? pageSize : undefined,
+      offset: pageSize > 0 ? offset : undefined,
+    }),
+    db.count('entries', filter),
+  ]);
 
-    const paginatedEntries = pageSize > 0 
-      ? filteredEntries.slice(offset, offset + pageSize)
-      : filteredEntries;
-
-    const filteredTotal = filteredEntries.length;
-
-    if (filteredEntries.length === 0) {
-      return c.json({ entries: [], total: 0, page, pageSize });
-    }
-
-    const userIds = [...new Set(filteredEntries.map(e => e.user_id))];
-    const users = await db.find<UserRecord>('users', { id: userIds });
-    const userMap = new Map(users.map(u => [u.id, u]));
-
-    const formattedEntries = await Promise.all(paginatedEntries.map(async (e: EntryRecord) => {
-      const user = userMap.get(e.user_id) || null;
-      return formatEntryWithZone(e, user);
-    }));
-
-    return c.json({ entries: formattedEntries, total: filteredTotal, page, pageSize });
-  } catch (error: any) {
-    console.error('Error fetching admin entries:', error);
-    return c.json({ error: error.message || 'Failed to fetch entries' }, 500);
+  if (entries.length === 0) {
+    return c.json({ entries: [], total: 0, page, pageSize });
   }
+
+  const userIds = [...new Set(entries.map(e => e.user_id))];
+  const users = await db.find<UserRecord>('users', { id: userIds });
+  const userMap = new Map(users.map(u => [u.id, u]));
+
+  const formattedEntries = entries.map((e: EntryRecord) => {
+    const user = userMap.get(e.user_id) || null;
+    return formatEntryWithZone(e, user);
+  });
+
+  return c.json({ entries: formattedEntries, total, page, pageSize });
 });
 
 entriesApp.patch('/admin/entries/:id', zValidator('json', updateEntrySchema), async (c) => {

@@ -61,10 +61,21 @@ usersApp.get('/admin/users', async (c) => {
     db.count('users', filter),
   ]);
 
-  const formattedUsers = await Promise.all(users.map(async (u: UserRecord) => {
-    const lastEntry = await db.find<any>('entries', { user_id: u.id }, { orderBy: 'date', order: 'DESC', limit: 1 });
-    return formatUser(u, lastEntry[0]?.date || null);
-  }));
+  const formattedUsers = users.map((u: UserRecord) => formatUser(u, null));
+
+  if (users.length > 0) {
+    const userIds = users.map(u => u.id);
+    const latestEntries = await db.find<{ user_id: string; date: string }>('entries', { user_id: userIds }, { orderBy: 'date', order: 'DESC', limit: 1000 });
+    const lastEntryMap = new Map<string, string>();
+    for (const e of latestEntries) {
+      if (!lastEntryMap.has(e.user_id)) {
+        lastEntryMap.set(e.user_id, e.date);
+      }
+    }
+    for (let i = 0; i < formattedUsers.length; i++) {
+      formattedUsers[i].lastEntryDate = lastEntryMap.get(users[i].id) || null;
+    }
+  }
 
   return c.json({ users: formattedUsers, total, page, pageSize: PAGE_SIZE });
 });
@@ -93,7 +104,7 @@ usersApp.post('/admin/users', zValidator('json', createUserSchema), async (c) =>
     updated_at: now,
   };
 
-  await db.insertOne('users', user);
+  await db.insertOne('users', { ...user });
 
   await db.insertOne('audit_logs', {
     id: crypto.randomUUID(),
@@ -209,8 +220,10 @@ usersApp.get('/admin/users/:id/export', async (c) => {
   if (!user) return c.json({ error: 'Not found' }, 404);
 
   let filter: Record<string, any> = { user_id: userId };
-  if (from) filter.date = from;
-  if (to) filter.date = `%${to}%`;
+  const dateFilter: Record<string, any> = {};
+  if (from) dateFilter.$gte = from;
+  if (to) dateFilter.$lte = to;
+  if (from || to) filter.date = dateFilter;
 
   const entries = await db.find<any>('entries', filter, { orderBy: 'date', order: 'ASC' });
 

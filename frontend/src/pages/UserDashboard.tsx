@@ -9,7 +9,6 @@ import ViewModeToggle from '../components/user/ViewModeToggle';
 import EntriesCardView from '../components/user/EntriesCardView';
 import EntriesListView from '../components/user/EntriesListView';
 import UserNoteModal from '../components/user/UserNoteModal';
-import DateFilter from '../components/DateFilter';
 
 export default function UserDashboard() {
   const { token } = useParams<{ token: string }>();
@@ -17,8 +16,6 @@ export default function UserDashboard() {
   const [viewMode, setViewMode] = useState<'card' | 'list'>('list');
   const [entryPage, setEntryPage] = useState(1);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
   const cardsPerPage = 10;
   const listEntriesPerPage = 80;
 
@@ -29,12 +26,12 @@ export default function UserDashboard() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['userEntries', token, entryPage, viewMode, fromDate, toDate],
+    queryKey: ['userEntries', token, entryPage, viewMode],
     queryFn: () => fetchUserEntries(
-      token!, 
-      viewMode === 'list' ? listEntriesPerPage : cardsPerPage, 
-      fromDate || undefined, 
-      toDate || undefined, 
+      token!,
+      viewMode === 'list' ? listEntriesPerPage : cardsPerPage,
+      undefined,
+      undefined,
       entryPage
     ),
     enabled: !!token,
@@ -47,22 +44,6 @@ export default function UserDashboard() {
 
   const handlePageChange = (page: number) => {
     setEntryPage(page);
-  };
-
-  const handleFromDateChange = (date: string) => {
-    setFromDate(date);
-    setEntryPage(1);
-  };
-
-  const handleToDateChange = (date: string) => {
-    setToDate(date);
-    setEntryPage(1);
-  };
-
-  const handleClearFilter = () => {
-    setFromDate('');
-    setToDate('');
-    setEntryPage(1);
   };
 
   if (profileQuery.isLoading) {
@@ -87,7 +68,7 @@ export default function UserDashboard() {
 
   const user = profileQuery.data!;
   const entriesWithZone = entriesQuery.data?.entries ?? [];
-  const allEntries = entriesWithZone.map(item => item.entry);
+  const allEntries = entriesWithZone.map(item => item.entry).filter(Boolean);
   const groupedEntries = groupEntriesByDate(allEntries);
   const entriesByDate = convertGroupedToArray(groupedEntries);
 
@@ -107,8 +88,8 @@ export default function UserDashboard() {
             </h1>
             <p className="text-sm text-gray-500 font-medium">({user.nickname})</p>
           </div>
-          <ViewModeToggle 
-            viewMode={viewMode} 
+          <ViewModeToggle
+            viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
           />
         </div>
@@ -120,14 +101,6 @@ export default function UserDashboard() {
         )}
       </div>
 
-      <DateFilter
-        fromDate={fromDate}
-        toDate={toDate}
-        onFromDateChange={handleFromDateChange}
-        onToDateChange={handleToDateChange}
-        onClear={handleClearFilter}
-      />
-
       {entriesQuery.isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -138,7 +111,7 @@ export default function UserDashboard() {
         </div>
       ) : viewMode === 'card' ? (
         <EntriesCardView
-          entries={allEntries}
+          entries={entriesWithZone}
           entryPage={entryPage}
           cardsPerPage={cardsPerPage}
           totalEntries={totalEntries}

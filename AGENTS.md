@@ -7,7 +7,6 @@ PeakFlowStat is a **mobile-first** web application for asthma patients to track 
 ### Key Features
 
 - **Patient Dashboard:** Shows user name and recent entry list. Supports card view (10 entries/page) and list view (80 entries/page). Charts and zone percentage have been removed — entry cards show raw readings.
-- **Date Filtering:** Both user dashboard and admin user detail pages support date range filtering for entries. CSV export respects date filters.
 - **Easy Entry:** Simplified form for recording 3 peak flow readings, SpO2, medication timing, and morning/evening period. Uses toggle buttons for period and medication timing selection with gray background styling. SpO2 and medication timing are on the same row for better mobile layout.
 - **Rich Text Notes:** Both patient entries and admin notes use WYSIWYG rich text editor with formatting toolbar (bold, italic, underline, lists, alignment). HTML content sanitized with DOMPurify.
 - **Admin Management:** Directly accessible panel to create/edit users, set personal best values, and manage entries. Modular backend routes for better maintainability.
@@ -19,10 +18,11 @@ PeakFlowStat is a **mobile-first** web application for asthma patients to track 
 ### Main Technologies
 
 - **Frontend:** React (TypeScript), Vite, React Router v6, TanStack Query (React Query), Tailwind CSS, react-i18next, DOMPurify, qrcode.react
-- **Backend:** Node.js (Express), MongoDB (Mongoose), Zod (request validation)
-- **Backend:** Node.js (Express), MongoDB (Mongoose), Zod (request validation)
+- **Backend:** Hono.js (Cloudflare Workers), D1 (SQLite), Zod (request validation)
 - **Localization:** Thai only (`th.json`)
-- **Deployment:** Docker Compose (frontend + backend + MongoDB)
+- **Deployment:** Cloudflare Pages + Workers + D1
+- **Testing:** Vitest (56 tests: 32 backend + 24 frontend)
+- **CI/CD:** GitHub Actions (deploy to Cloudflare Pages on push to main)
 
 ---
 
@@ -136,7 +136,7 @@ routes/ → middleware/ → (service layer to be implemented) → DatabaseClient
 | `/u/:token` | `UserDashboard` | User name + recent entry list + add entry button (no charts) |
 | `/u/:token/new` | `NewEntry` | Entry form (peak flow, SpO2, medication, period, notes) |
 | `/u/:token/entries` | `EntryHistory` | Full paginated entry list |
-| `/admin` | `AdminDashboard` | User list, search, copy short link per row; create user form with cancel button |
+| `/admin` | `AdminDashboard` | User list, search, clickable rows to user detail; copy short link per row; create user form with cancel button |
 | `/admin/users/:id` | `AdminUserDetail` | User entries (editable) + notes + QR share card + export |
 | `/admin/audit` | `AdminAuditLog` | Paginated audit log viewer |
 
@@ -243,38 +243,6 @@ Peak flow zones are calculated from each user's `personalBest` value. This is **
 - **Edge case:** If `personalBest` is not set, a warning notice is shown on the dashboard to contact their doctor.
 
 Zone calculation utility: `frontend/src/utils/zone.ts` and `backend/src/services/zone.ts`.
-
----
-
-## Date Filtering
-
-Both the user dashboard and admin user detail pages support date range filtering for entries.
-
-### Implementation
-
-- **Frontend:** `DateFilter` component (`frontend/src/components/DateFilter.tsx`) provides from/to date pickers
-- **Backend:** Entries endpoints accept `from` and `to` query parameters
-- **Filtering:** Applied in application layer (not via DatabaseClient operators)
-- **Pagination:** Page resets to 1 when date filters change
-- **Export:** CSV export respects current date filters
-- **Localization:** Thai labels for all UI elements
-
-### Usage
-
-```typescript
-// API call with date filters
-GET /api/u/:token/entries?from=2026-01-01&to=2026-01-31&page=1&pageSize=80
-
-// Export with date filters
-GET /api/admin/users/:id/export?from=2026-01-01&to=2026-01-31
-```
-
-### Thai Translations
-
-- `common.dateFilter`: "กรองตามวันที่"
-- `common.fromDate`: "จากวันที่"
-- `common.toDate`: "ถึงวันที่"
-- `common.clearFilter`: "ล้างตัวกรอง"
 
 ---
 
@@ -470,11 +438,12 @@ const [items, total] = await Promise.all([
 
 ## Testing
 
-- **Backend:** Jest + Supertest. Test files co-located as `*.test.ts`.
-  - Must test: short link validation middleware, entry CRUD, admin auth, audit log writes, Zod schema validation, zone calculation, CSV export format.
-- **Frontend:** React Testing Library + Vitest.
-  - Must test: Thai B.E. date formatting, zone calculation utility, EntryCard note preview/expand, EntryCard rendering with mock data.
-- Run all tests: `npm test` from the respective `frontend/` or `backend/` directory.
+- **Backend:** Vitest. 32 tests in `worker/src/__tests__/`.
+  - Zone calculation (8 tests), DatabaseClient validation (9 tests), Zod schemas (15 tests).
+- **Frontend:** Vitest. 24 tests in `frontend/src/__tests__/`.
+  - Thai B.E. date formatting (10 tests), zone calculation (6 tests), TypeScript type validation (8 tests).
+- Run all tests: `npm test` from the respective `frontend/` or `worker/` directory.
+- **Total:** 56 tests, all passing.
 
 ---
 
@@ -688,34 +657,20 @@ See `ENVIRONMENTS.md` for complete setup instructions.
 ## Building and Running
 
 ```bash
-# Full stack (recommended)
-docker-compose up
-
-# Frontend only (dev)
+# Frontend (dev)
 cd frontend && npm install && npm run dev
 
-# Backend only (dev)
-cd backend && npm install && npm run dev
-
-# Seed test data (dev only)
-cd backend && npx ts-node src/seed.ts
+# Worker backend (dev)
+cd worker && npm install && npm run dev
 
 # Run tests
-cd frontend && npm test    # Vitest
-cd backend && npm test     # Jest (requires MongoDB)
+cd frontend && npm test    # Vitest (24 tests)
+cd worker && npm test      # Vitest (32 tests)
 ```
-
-### Docker Compose Requirements
-
-- Named volumes for MongoDB persistence.
-- Backend depends on MongoDB with health check (`mongosh --eval 'db.runCommand("ping")'`).
-- Backend exposes `/api/health` for its own health check.
-- Frontend served via nginx in production (not `npm start`).
-- Restart policy: `unless-stopped` for all services.
 
 ---
 
-## Cloudflare Deployment (Alternative)
+## Cloudflare Deployment
 
 In addition to Docker Compose deployment, the project supports **serverless deployment** on Cloudflare with **D1 database** (SQLite).
 
@@ -754,40 +709,7 @@ The Cloudflare backend is in `/worker/` directory with:
 
 ### Database Schema (D1/SQLite)
 
-**users table**
-```sql
-id TEXT PRIMARY KEY
-name TEXT NOT NULL
-age INTEGER
-height REAL
-weight REAL
-green_min INTEGER
-yellow_min INTEGER
-short_link_token TEXT UNIQUE NOT NULL
-created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-```
-
-**entries table**
-```sql
-id TEXT PRIMARY KEY
-user_id TEXT NOT NULL
-peak_flow INTEGER NOT NULL
-spo2 INTEGER
-symptoms TEXT (JSON array)
-notes TEXT
-timestamp DATETIME NOT NULL
-FOREIGN KEY (user_id) REFERENCES users(id)
-```
-
-**audit_logs table**
-```sql
-id TEXT PRIMARY KEY
-action TEXT NOT NULL
-user_id TEXT
-details TEXT
-ip_address TEXT
-timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-```
+See `worker/migrations/0001_schema.sql` for the current schema. Tables: `users`, `entries`, `audit_logs`.
 
 ### Deployment Configuration
 
@@ -910,23 +832,6 @@ After deploying, add DNS manually in Cloudflare Dashboard → **allergyclinic.cc
 
 > **Note:** Do NOT connect the Pages project to GitLab CI/CD — the repo root contains `worker/wrangler.toml` which causes the Pages build pipeline to run `npx wrangler deploy` instead of `npm run build`.
 
-### Cost Comparison
-
-| Service | Docker Compose | Cloudflare |
-|---------|----------------|------------|
-| Hosting | Self-managed | Serverless |
-| Database | MongoDB (512MB free) | D1 (5GB free) |
-| Requests | Unlimited | 100k/day |
-| Global CDN | Manual setup | Built-in |
-
-### Default Admin Credentials
-
-- **Username**: `admin`
-- **Password**: `admin123`
-
-See `worker/DEPLOYMENT.md` for detailed Cloudflare setup instructions.
-
 ---
-
 
 See [CHANGELOGS.md](./CHANGELOGS.md) for version history.

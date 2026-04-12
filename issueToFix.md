@@ -3,7 +3,7 @@
 ## Project Review (2026-04-12)
 
 ### Overview
-A mobile-first asthma peak flow tracking app deployed on Cloudflare (Pages + Workers + D1). Thai-localized UI. v1.4.0 with 45 iterations of rapid development.
+A mobile-first asthma peak flow tracking app deployed on Cloudflare (Pages + Workers + D1). Thai-localized UI. v1.6.0 with 51 iterations of rapid development.
 
 ---
 
@@ -22,7 +22,7 @@ A mobile-first asthma peak flow tracking app deployed on Cloudflare (Pages + Wor
 
 1. **SQL injection in `DatabaseClient`** (`worker/src/lib/database.ts`): Table names and column names are interpolated directly into SQL strings. ✅ **FIXED:** `ALLOWED_TABLES` and `ALLOWED_ORDER_COLUMNS` whitelists now exist and are enforced via `assertTable()` and `assertOrderColumn()` functions.
 
-2. **N+1 queries in admin users list** (`worker/src/routes/admin/users.ts:59-68`): `GET /admin/users` fetches users, then does `await Promise.all(users.map(async ...))` with a per-user `db.find('entries', ...)` call. ❌ **STILL PRESENT:** Each user triggers a separate database query to get their last entry.
+2. **N+1 queries in admin users list** (`worker/src/routes/admin/users.ts:59-68`): ✅ **FIXED:** Now uses batch entry lookup instead of per-user query.
 
 3. **N+1 queries in admin entries** (`worker/src/routes/admin/entries.ts:55-95`): ✅ **FIXED:** Now uses batch user fetching with Map to eliminate per-entry database queries.
 
@@ -34,17 +34,17 @@ A mobile-first asthma peak flow tracking app deployed on Cloudflare (Pages + Wor
 
 6. **Hardcoded English strings in table headers**: `UserDashboard.tsx:220-247` and `AdminUserDetail.tsx:419-460` have hardcoded "Morning - Before Med", "Evening - After Med", "PF(L/Min)", "SpO2", "Note" instead of using i18n keys. ❌ **STILL PRESENT:** Table headers are hardcoded in component JSX.
 
-7. **`CreateEntryInput` missing `period`** (`frontend/src/types/index.ts:84-90`): The type definition doesn't include `period`, but the form sends it. The backend Zod schema requires it. Type mismatch.
+7. **`CreateEntryInput` missing `period`** (`frontend/src/types/index.ts:84-90`): ✅ **FIXED:** Type now includes `period: 'morning' | 'evening'`.
 
 8. **CSV export date filtering**: ✅ **FIXED:** Date filtering now works with `from` and `to` query parameters applied in application layer (not via DatabaseClient operators).
 
-9. **`.js` files alongside `.ts` files** in `worker/src/routes/` and `worker/src/lib/`: Both `.ts` and compiled `.js` exist (`admin.ts` + `admin.js`, etc.). The `.js` files shouldn't be in the source directory.
+9. **`.js` files alongside `.ts` files** in `worker/src/routes/` and `worker/src/lib/`: ✅ **FIXED:** Removed 8 stale .js files from worker/src.
 
 10. **`note` route missing Zod validation**: ✅ **FIXED:** `PATCH /admin/users/:id/note` now uses `zValidator('json', adminNoteSchema)` with `z.string().max(5000)`.
 
 #### Minor
 
-11. **Console.log in production code** (`AdminDashboard.tsx:32`): `console.log('Fetching users...')` and `console.log('Users fetched:', result)` left in.
+11. **Console.log in production code** (`AdminDashboard.tsx:32`): ✅ **FIXED:** Removed from AdminDashboard.
 
 12. **Duplicated table rendering logic**: ✅ **FIXED:** Table rendering extracted into `EntriesListView.tsx` (user) and `UserEntriesTable.tsx` (admin). Shared `entryGrouping.ts` utility eliminates duplication.
 
@@ -59,8 +59,8 @@ A mobile-first asthma peak flow tracking app deployed on Cloudflare (Pages + Wor
 ### Architecture Notes
 
 - The `backend/` directory (Express + MongoDB) appears abandoned in favor of `worker/` (Hono + D1). AGENTS.md still documents both extensively, which is confusing. Consider removing `backend/` or clearly marking it deprecated.
-- No tests exist — no test files found in `worker/` or `frontend/src/`.
-- The `DatabaseClient` abstraction is too thin — it doesn't handle range queries, joins, or parameterized column names, forcing workarounds throughout the codebase.
+- No tests exist — no test files found in `worker/` or `frontend/src/`. ✅ **FIXED:** 56 tests now exist (32 backend + 24 frontend).
+- The `DatabaseClient` abstraction is too thin — it doesn't handle range queries, joins, or parameterized column names, forcing workarounds throughout the codebase. ✅ **FIXED:** DatabaseClient now has full column validation, $gte/$lte range operators, shared buildWhereClause.
 
 ---
 
@@ -199,17 +199,17 @@ A mobile-first asthma peak flow tracking app deployed on Cloudflare (Pages + Wor
 
 ## Documentation Discrepancies
 
-The following issues are marked as **RESOLVED** in issueToFix.md but **STILL PRESENT** in the current codebase:
+The following issues were previously marked as resolved but are now **actually fixed**:
 
-- **Issue #2 (N+1 in `/admin/users`)**: Code still has per-user entry lookup at lines 59-68 of `admin/users.ts`
-- **Issue #8 (Hardcoded table headers)**: Both dashboard pages still have hardcoded English strings in table JSX
-
-The following issues were previously marked as resolved but are actually fixed:
-
-- ✅ **Issue #3 (N+1 in `/admin/entries`)**: Now uses batch user fetching
-- ✅ **Issue #11 (SQL injection)**: Whitelists exist and are enforced
-- ✅ **Issue #4 (No Zod validation on note endpoint)**: Now uses `zValidator`
-- ✅ **Issue #7 (Code duplication)**: Modular components and shared utility created
+- ✅ **Issue #1 (SQL injection)**: DatabaseClient now validates table names, column names, and order columns via whitelists. $gte/$lte range operators supported.
+- ✅ **Issue #2 (N+1 in `/admin/users`)**: Now uses batch entry lookup instead of per-user query
+- ✅ **Issue #3 (N+1 in `/admin/entries`)**: Uses batch user fetching
+- ✅ **Issue #4 (No Zod validation on note endpoint)**: Uses `zValidator`
+- ✅ **Issue #7 (CreateEntryInput missing period)**: Type now includes `period` field
+- ✅ **Issue #8 (CSV export date filtering)**: Uses `$gte`/`$lte` range operators
+- ✅ **Issue #9 (.js files in source)**: Removed stale .js files
+- ✅ **Issue #10 (No Zod validation on note endpoint)**: Uses `zValidator` with max(5000)
+- ✅ **Issue #11 (Console.log in production)**: Removed from AdminDashboard
 
 ---
 
@@ -325,31 +325,64 @@ The following issues were previously marked as resolved but are actually fixed:
 
 | # | Issue | Severity | Status |
 |---|-------|----------|--------|
-| 1 | SQL injection in DatabaseClient | Critical | ✅ Fixed (whitelists implemented) |
-| 2 | N+1 in admin users list | Critical | ❌ Still present |
-| 3 | N+1 in admin entries | Critical | ✅ Fixed (batch fetching) |
+| 1 | SQL injection in DatabaseClient | Critical | ✅ Fixed (whitelists + column validation) |
+| 2 | N+1 in admin users list | Critical | ✅ Fixed (batch entry lookup) |
+| 3 | N+1 in admin entries | Critical | ✅ Fixed (batch user fetching) |
 | 4 | No admin authentication | Critical | ⚠️ By design (Issue A) |
-| 5 | Pervasive `any` type usage | Medium | ⚠️ Partially fixed (admin routes typed) |
+| 5 | Pervasive `any` type usage | Medium | ⚠️ Partially fixed (admin routes typed, FormattedEntry/FormattedAuditLog fixed) |
 | 6 | Hardcoded English table headers | Medium | ❌ Still present |
-| 7 | CreateEntryInput missing period | Medium | ❌ Open |
-| 8 | CSV export date filtering | Medium | ✅ Fixed |
-| 9 | .js files in source | Medium | ❌ Open |
+| 7 | CreateEntryInput missing period | Medium | ✅ Fixed |
+| 8 | CSV export date filtering | Medium | ✅ Fixed ($gte/$lte operators) |
+| 9 | .js files in source | Medium | ✅ Fixed (removed stale .js files) |
 | 10 | No Zod validation on note endpoint | Medium | ✅ Fixed |
-| 11 | Console.log in production | Minor | ❌ Open |
+| 11 | Console.log in production | Minor | ✅ Fixed |
 | 12 | Functions too long (backend admin routes) | Maintainability | ✅ Fixed |
 | 13 | Functions too long (AdminUserDetail page) | Maintainability | ✅ Fixed |
 | 14 | Functions too long (UserDashboard page) | Maintainability | ✅ Fixed |
 | 15 | Date filter missing from user dashboard | Feature | ✅ Fixed |
 | 16 | Date filter missing from admin user detail | Feature | ✅ Fixed |
 | 17 | Date filter missing from CSV export | Feature | ✅ Fixed |
-| A | No backend admin auth | Security | ⚠️ By design |
-| B | Hardcoded admin_id in audit logs | Maintainability | ⚠️ Blocked by A |
 | 18 | Markdown notes → Rich text (WYSIWYG) | Feature | ✅ Fixed |
 | 19 | Date/Time display standardization | Feature | ✅ Fixed |
+| 20 | Date timezone issue in EntryForm | Bug | ✅ Fixed (use raw date string) |
+| 21 | User entries date filtering done in JS | Performance | ✅ Fixed (SQL-level filtering) |
+| 22 | CSV filename header injection | Security | ✅ Fixed (name sanitization) |
+| 23 | Comprehensive test suites added | Testing | ✅ Fixed (56 tests passing) |
+| 24 | DateFilter removed from user/admin dashboards | UI Simplification | ✅ Fixed |
+| 25 | EntriesCardView crash on undefined entry | Bug | ✅ Fixed (pass EntryWithZone objects) |
+| 26 | Admin dashboard row not fully clickable | UX | ✅ Fixed (row click + stopPropagation) |
+| 27 | SPA catch-all redirect missing in _redirects | Bug | ✅ Fixed (added `* /index.html 200`) |
+| 28 | GitHub Actions CI/CD setup | DevOps | ✅ Fixed (deploy.yml for main branch) |
+| A | No backend admin auth | Security | ⚠️ By design |
+| B | Hardcoded admin_id in audit logs | Maintainability | ⚠️ Blocked by A |
 
 ---
 
-## Resolved Issues (2026-04-12) - Continued
+## Resolved Issues (2026-04-12) - v1.5.0
+
+### 20. ✅ Date Timezone Issue in EntryForm
+- **File:** `frontend/src/components/EntryForm.tsx`
+- **Was:** `new Date(date).toISOString()` converted local date to UTC, causing off-by-one day in certain timezones.
+- **Fix:** Pass raw date string directly (e.g., `"2026-04-12"`) instead of converting to ISO.
+
+### 21. ✅ User/Admin Entries Date Filtering Done in JavaScript
+- **Files:** `worker/src/routes/user.ts`, `worker/src/routes/admin/entries.ts`
+- **Was:** Date filtering (`from`/`to`) applied in JavaScript after fetching ALL entries from database. Total count was wrong. Performance issue with large datasets.
+- **Fix:** Date filtering now uses SQL `$gte`/`$lte` range operators in DatabaseClient. Proper backend pagination applied after filtering.
+
+### 22. ✅ CSV Filename Header Injection
+- **Files:** `worker/src/routes/admin/users.ts`, `worker/src/routes/user.ts`
+- **Was:** User first/last name used directly in Content-Disposition header without sanitization.
+- **Fix:** Names sanitized to alphanumeric + dash/underscore only.
+
+### 23. ✅ Comprehensive Test Suites Added
+- **Backend:** 32 tests in `worker/src/__tests__/` covering zone calculation, DatabaseClient validation, Zod schemas
+- **Frontend:** 24 tests in `frontend/src/__tests__/` covering Thai B.E. date formatting, zone calculation, TypeScript type validation
+- **All tests passing.**
+
+---
+
+## Resolved Issues (2026-04-12) - v1.4.0
 
 ### 19. ✅ Date/Time Display Standardization
 - **Files:**

@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
-import { Search, Plus, User as UserIcon, Activity, ClipboardList, Copy, Check, Eye, Edit2 } from 'lucide-react';
+import { Search, Plus, User as UserIcon, Activity, ClipboardList, Copy, Check } from 'lucide-react';
 import { fetchUsers, createUser } from '../api/admin';
 import { formatThaiDate } from '../utils/date';
+import RichTextEditor from '../components/RichTextEditor';
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
@@ -13,7 +13,6 @@ export default function AdminDashboard() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
-  const [showAdminNotePreview, setShowAdminNotePreview] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', nickname: '', personalBest: '', adminNote: '' });
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -27,12 +26,7 @@ export default function AdminDashboard() {
 
   const usersQuery = useQuery({
     queryKey: ['adminUsers', page, search],
-    queryFn: async () => {
-      console.log('Fetching users...');
-      const result = await fetchUsers(page, search || undefined);
-      console.log('Users fetched:', result);
-      return result;
-    },
+    queryFn: () => fetchUsers(page, search || undefined),
   });
 
   const createMutation = useMutation({
@@ -47,7 +41,6 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
       setShowCreate(false);
-      setShowAdminNotePreview(false);
       setForm({ firstName: '', lastName: '', nickname: '', personalBest: '', adminNote: '' });
     },
     onError: (error) => {
@@ -146,45 +139,15 @@ export default function AdminDashboard() {
             />
           </div>
           <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-medium text-gray-700">
-                {t('admin.adminNote')}
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowAdminNotePreview(!showAdminNotePreview)}
-                className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-              >
-                {showAdminNotePreview ? (
-                  <>
-                    <Edit2 size={12} />
-                    {t('entry.editNote')}
-                  </>
-                ) : (
-                  <>
-                    <Eye size={12} />
-                    {t('entry.previewNote')}
-                  </>
-                )}
-              </button>
-            </div>
-            {showAdminNotePreview ? (
-              <div className="border rounded-lg px-3 py-2 min-h-[72px] bg-gray-50 prose prose-sm max-w-none">
-                {form.adminNote ? (
-                  <ReactMarkdown>{form.adminNote}</ReactMarkdown>
-                ) : (
-                  <p className="text-gray-400 italic">{t('entry.noNote')}</p>
-                )}
-              </div>
-            ) : (
-              <textarea
-                placeholder={t('entry.notePlaceholder')}
-                value={form.adminNote}
-                onChange={(e) => setForm({ ...form, adminNote: e.target.value })}
-                className="w-full border rounded-lg px-3 py-2"
-                rows={3}
-              />
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('admin.adminNote')}
+            </label>
+            <RichTextEditor
+              value={form.adminNote}
+              onChange={(value) => setForm({ ...form, adminNote: value })}
+              placeholder={t('entry.notePlaceholder')}
+              minHeight="72px"
+            />
           </div>
           <div className="flex gap-2">
             <button
@@ -197,7 +160,6 @@ export default function AdminDashboard() {
             <button
               onClick={() => {
                 setShowCreate(false);
-                setShowAdminNotePreview(false);
                 setForm({ firstName: '', lastName: '', nickname: '', personalBest: '', adminNote: '' });
               }}
               className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
@@ -231,15 +193,12 @@ export default function AdminDashboard() {
               </tr>
             ) : (
               usersQuery.data.users.map((user) => (
-                <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                <tr key={user._id} className="hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => window.location.href = `/admin/users/${user._id}`}>
                   <td className="px-4 py-3">
-                    <Link
-                      to={`/admin/users/${user._id}`}
-                      className="font-medium text-blue-600 hover:underline flex items-center gap-2"
-                    >
+                    <div className="font-medium text-blue-600 flex items-center gap-2">
                       <UserIcon size={16} className="text-gray-400" />
                       {user.firstName} {user.lastName}
-                    </Link>
+                    </div>
                     <p className="text-xs text-gray-500 ml-6">({user.nickname})</p>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
@@ -260,7 +219,7 @@ export default function AdminDashboard() {
                       <span className="text-gray-400 text-xs">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => handleCopyLink(user.shortCode, user._id)}
                       className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${

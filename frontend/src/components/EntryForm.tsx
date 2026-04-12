@@ -64,7 +64,7 @@ export default function EntryForm({ onSubmit, isLoading }: EntryFormProps) {
     if (!validate()) return;
 
     onSubmit({
-      date: new Date(date).toISOString(),
+      date,
       peakFlowReadings: readings.map(Number) as [number, number, number],
       spO2: Number(spO2),
       medicationTiming,
