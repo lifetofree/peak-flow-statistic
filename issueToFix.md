@@ -103,3 +103,14 @@
 | 9 | Empty cells showed `-` | UI consistency | ✅ Fixed 2026-04-08 |
 | 10 | No date range filter on admin entries | Missing feature | ✅ Fixed 2026-04-08 |
 | 11 | SQL injection risk in DatabaseClient | Security | ✅ Fixed 2026-04-08 |
+| 12 | Missing SPA catch-all redirect in _redirects | Critical | ✅ Fixed 2026-04-12 |
+
+---
+
+## Resolved Issues (2026-04-12)
+
+### 12. ✅ Missing SPA Catch-All Redirect in _redirects
+- **File:** `frontend/public/_redirects`
+- **Problem:** Only had `/s/*` redirect rule, causing 404s and MIME type errors on client-side routes like `/admin/users/:id`. Cloudflare Pages returned `text/html` for missing assets instead of serving `index.html`.
+- **Error:** `Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of "text/html"`
+- **Fix:** Added `* /index.html 200` rule to handle all unmatched routes and serve the SPA entry point.
