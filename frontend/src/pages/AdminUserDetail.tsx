@@ -17,6 +17,7 @@ import {
   Moon,
   Link2,
   FileText,
+  Eye,
 } from 'lucide-react';
 import ShareLinkCard from '../components/ShareLinkCard';
 import { fetchUser, updateUser, updateNote, fetchAdminEntries, deleteUser } from '../api/admin';
@@ -30,6 +31,7 @@ export default function AdminUserDetail() {
 
   const [editing, setEditing] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
+  const [showNotePreview, setShowNotePreview] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', nickname: '', personalBest: '' });
   const [noteText, setNoteText] = useState('');
   const [entryPage, setEntryPage] = useState(1);
@@ -71,7 +73,11 @@ export default function AdminUserDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUser', id] });
       setEditingNote(false);
+      setShowNotePreview(false);
     },
+    onError: (error: any) => {
+      alert(error.message || t('common.error'));
+    }
   });
 
   const deleteMutation = useMutation({
@@ -123,6 +129,7 @@ export default function AdminUserDetail() {
   const startEditingNote = () => {
     setNoteText(userQuery.data?.adminNote || '');
     setEditingNote(true);
+    setShowNotePreview(false);
   };
 
   if (userQuery.isLoading) {
@@ -234,9 +241,10 @@ export default function AdminUserDetail() {
             <div className="flex gap-2">
               <button
                 onClick={() => updateMutation.mutate()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-blue-700 transition-colors"
+                disabled={updateMutation.isPending}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
-                <Save size={16} />
+                {updateMutation.isPending ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : <Save size={16} />}
                 {t('common.save')}
               </button>
               <button
@@ -313,25 +321,59 @@ export default function AdminUserDetail() {
               {t('common.edit')}
             </button>
           )}
+          {editingNote && (
+            <button
+              type="button"
+              onClick={() => setShowNotePreview(!showNotePreview)}
+              className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+            >
+              {showNotePreview ? (
+                <>
+                  <Edit2 size={12} />
+                  {t('entry.editNote')}
+                </>
+              ) : (
+                <>
+                  <Eye size={12} />
+                  {t('entry.previewNote')}
+                </>
+              )}
+            </button>
+          )}
         </div>
         {editingNote ? (
           <div className="space-y-3">
-            <textarea
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              rows={6}
-              className="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500"
-            />
+            {showNotePreview ? (
+              <div className="w-full border rounded-xl px-4 py-3 min-h-[144px] bg-gray-50 prose prose-sm max-w-none">
+                {noteText ? (
+                  <ReactMarkdown>{noteText}</ReactMarkdown>
+                ) : (
+                  <p className="text-gray-400 italic">{t('entry.noNote')}</p>
+                )}
+              </div>
+            ) : (
+              <textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                rows={6}
+                placeholder={t('entry.notePlaceholder')}
+                className="w-full border rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500"
+              />
+            )}
             <div className="flex gap-2">
               <button
                 onClick={() => noteMutation.mutate()}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-blue-700 transition-colors"
+                disabled={noteMutation.isPending}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-blue-700 disabled:opacity-50 transition-colors"
               >
-                <Save size={16} />
+                {noteMutation.isPending ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div> : <Save size={16} />}
                 {t('common.save')}
               </button>
               <button
-                onClick={() => setEditingNote(false)}
+                onClick={() => {
+                  setEditingNote(false);
+                  setShowNotePreview(false);
+                }}
                 className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1 hover:bg-gray-200 transition-colors"
               >
                 <X size={16} />

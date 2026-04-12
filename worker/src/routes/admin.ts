@@ -206,16 +206,20 @@ app.delete('/admin/users/:id', async (c) => {
   return c.json({ success: true });
 });
 
-app.patch('/admin/users/:id/note', async (c) => {
+const adminNoteSchema = z.object({
+  adminNote: z.string().max(5000),
+});
+
+app.patch('/admin/users/:id/note', zValidator('json', adminNoteSchema), async (c) => {
   const db = new DatabaseClient(c.env);
   const userId = c.req.param('id');
-  const { adminNote } = await c.req.json();
+  const { adminNote } = c.req.valid('json');
   const now = new Date().toISOString();
 
   const user = await db.findOne<any>('users', { id: userId });
   if (!user) return c.json({ error: 'Not found' }, 404);
 
-  const before = { adminNote: user.admin_note };
+  const before = { adminNote: user.admin_note || '' };
   await db.updateOne('users', { id: userId }, { admin_note: adminNote, updated_at: now });
 
   await db.insertOne('audit_logs', {
