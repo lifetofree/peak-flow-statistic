@@ -62,11 +62,15 @@ export function rotateToken(id: string): Promise<{ shortToken: string }> {
 export function fetchAdminEntries(
   page: number,
   userId?: string,
-  pageSize?: number
+  pageSize?: number,
+  from?: string,
+  to?: string
 ): Promise<{ entries: Entry[]; total: number; page: number; pageSize: number }> {
   const params = new URLSearchParams({ page: String(page) });
   if (userId) params.set('userId', userId);
   if (pageSize !== undefined) params.set('pageSize', String(pageSize));
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
   return adminFetch(`/admin/entries?${params}`);
 }
 
@@ -92,7 +96,11 @@ export function fetchAuditLogs(
   return adminFetch(`/admin/audit?${params}`);
 }
 
-export function getAdminExportUrl(userId: string): string {
+export function getAdminExportUrl(userId: string, from?: string, to?: string): string {
   const api = import.meta.env.VITE_API_URL || '/api';
-  return `${api}/admin/users/${userId}/export`;
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const qs = params.toString();
+  return `${api}/admin/users/${userId}/export${qs ? '?' + qs : ''}`;
 }

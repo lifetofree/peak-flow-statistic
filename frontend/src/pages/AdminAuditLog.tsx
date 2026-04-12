@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchAuditLogs } from '../api/admin';
-import { formatThaiDateTime } from '../utils/date';
+import { formatThaiDate } from '../utils/date';
 
 const ACTIONS = ['CREATE', 'UPDATE', 'DELETE'] as const;
 
@@ -71,7 +71,7 @@ export default function AdminAuditLog() {
                   {log.action}
                 </span>
                 <span className="text-gray-400 text-xs">
-                  {formatThaiDateTime(log.timestamp)}
+                  {formatThaiDate(log.timestamp)}
                 </span>
               </div>
               <p className="text-gray-600">

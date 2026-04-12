@@ -6,21 +6,23 @@ PeakFlowStat is a **mobile-first** web application for asthma patients to track 
 
 ### Key Features
 
-- **Patient Dashboard:** Shows user name and recent entry list. Charts and zone percentage have been removed — entry cards show raw readings.
-- **Easy Entry:** Simplified form for recording 3 peak flow readings, SpO2, medication timing, and morning/evening period.
-- **Admin Management:** Directly accessible panel to create/edit users, set personal best values, and manage entries.
-- **Markdown Notes:** Support for Markdown in patient entries and admin-only notes for each user.
-- **Data Export:** Export patient data to CSV for clinical review.
+- **Patient Dashboard:** Shows user name and recent entry list. Supports card view (10 entries/page) and list view (80 entries/page). Charts and zone percentage have been removed — entry cards show raw readings.
+- **Easy Entry:** Simplified form for recording 3 peak flow readings, SpO2, medication timing, and morning/evening period. Uses toggle buttons for period and medication timing selection with gray background styling. SpO2 and medication timing are on the same row for better mobile layout.
+- **Rich Text Notes:** Both patient entries and admin notes use WYSIWYG rich text editor with formatting toolbar (bold, italic, underline, lists, alignment). HTML content sanitized with DOMPurify.
+- **Admin Management:** Directly accessible panel to create/edit users, set personal best values, and manage entries. Modular backend routes for better maintainability.
+- **Data Export:** Export patient data to CSV for clinical review with optional date filtering.
 - **Audit Logging:** Transparent tracking of all data modifications.
 - **Bitly-like Short Links:** Each user gets an 8-character cryptographically random `shortCode`. Visiting `/s/:code` triggers a server-side 302 redirect to their dashboard. Click counts are tracked in DB but not displayed.
 - **Share Link UI:** Admin can view/copy the short URL and see a QR code — available in the user detail view and as a copy button per row in the user list. (Native share button removed.)
 
 ### Main Technologies
 
-- **Frontend:** React (TypeScript), Vite, React Router v6, TanStack Query (React Query), Tailwind CSS, react-i18next, react-markdown, qrcode.react
-- **Backend:** Node.js (Express), MongoDB (Mongoose), Zod (request validation)
+- **Frontend:** React (TypeScript), Vite, React Router v6, TanStack Query (React Query), Tailwind CSS, react-i18next, DOMPurify, qrcode.react
+- **Backend:** Hono.js (Cloudflare Workers), D1 (SQLite), Zod (request validation)
 - **Localization:** Thai only (`th.json`)
-- **Deployment:** Docker Compose (frontend + backend + MongoDB)
+- **Deployment:** Cloudflare Pages + Workers + D1
+- **Testing:** Vitest (56 tests: 32 backend + 24 frontend)
+- **CI/CD:** GitHub Actions (deploy to Cloudflare Pages on push to main)
 
 ---
 
@@ -38,6 +40,36 @@ PeakFlowStat/
 │   ├── Dockerfile            # Multi-stage: build with Vite, serve with nginx
 │   ├── vite.config.ts
 │   └── src/
+│       ├── components/
+│       │   ├── admin/        # Admin-specific components
+│       │   │   ├── UserProfile.tsx
+│       │   │   ├── UserShareLink.tsx
+│       │   │   ├── UserAdminNote.tsx
+│       │   │   ├── UserEntriesTable.tsx
+│       │   │   └── NoteModal.tsx
+│       │   ├── user/         # User dashboard components
+│       │   │   ├── ViewModeToggle.tsx
+│       │   │   ├── EntriesCardView.tsx
+│       │   │   ├── EntriesListView.tsx
+│       │   │   └── UserNoteModal.tsx
+│       │   ├── EntryCard.tsx
+│       │   ├── EntryForm.tsx
+│       │   ├── ShareLinkCard.tsx
+│       │   ├── DateFilter.tsx
+│       │   └── RichTextEditor.tsx
+│       ├── pages/
+│       │   ├── UserDashboard.tsx
+│       │   ├── NewEntry.tsx
+│       │   ├── EntryHistory.tsx
+│       │   ├── AdminDashboard.tsx
+│       │   ├── AdminUserDetail.tsx
+│       │   └── AdminAuditLog.tsx
+│       ├── api/
+│       ├── utils/
+│       │   ├── date.ts
+│       │   ├── zone.ts
+│       │   └── entryGrouping.ts
+│       └── i18n/
 ├── backend/
 │   ├── src/
 │   │   ├── controllers/      # Parse request, call service, return response
@@ -56,7 +88,18 @@ PeakFlowStat/
 ├── worker/                   # Cloudflare Workers backend (Hono.js + D1)
 │   ├── src/
 │   │   ├── index.ts          # Hono app entry point
-│   │   ├── routes/           # API routes (health, admin, user, redirect)
+│   │   ├── routes/
+│   │   │   ├── admin/        # Admin routes (modular)
+│   │   │   │   ├── users.ts
+│   │   │   │   ├── entries.ts
+│   │   │   │   ├── audit.ts
+│   │   │   │   ├── index.ts
+│   │   │   │   └── types.ts
+│   │   │   ├── user.ts
+│   │   │   ├── redirect.ts
+│   │   │   ├── health.ts
+│   │   │   ├── zone.ts
+│   │   │   └── admin.ts      # Deprecated: re-exports admin/ index
 │   │   ├── lib/
 │   │   │   ├── database.ts   # D1 client
 │   │   │   └── jwt.ts        # JWT utilities
@@ -70,12 +113,19 @@ PeakFlowStat/
 
 ### Backend Layer Flow
 
+**Express + MongoDB (backend/ - Deprecated):**
 ```
 routes/ → middleware/ → controllers/ → services/ → models/
                                                  → AuditLog writes
 ```
-
 Controllers must NOT contain business logic or call models directly. All mutations go through services, which handle audit logging in one place.
+
+**Hono + D1 (worker/ - Active):**
+```
+routes/ → middleware/ → (service layer to be implemented) → DatabaseClient → D1
+                                                  → AuditLog writes
+```
+⚠️ **Note:** Worker routes currently mix concerns. Service layer partially implemented (modular route files). Audit logging is inline in route handlers. This should be refactored to follow the same layered architecture as the Express backend.
 
 ---
 
@@ -86,7 +136,7 @@ Controllers must NOT contain business logic or call models directly. All mutatio
 | `/u/:token` | `UserDashboard` | User name + recent entry list + add entry button (no charts) |
 | `/u/:token/new` | `NewEntry` | Entry form (peak flow, SpO2, medication, period, notes) |
 | `/u/:token/entries` | `EntryHistory` | Full paginated entry list |
-| `/admin` | `AdminDashboard` | User list, search, copy short link per row; create user form with cancel button |
+| `/admin` | `AdminDashboard` | User list, search, clickable rows to user detail; copy short link per row; create user form with cancel button |
 | `/admin/users/:id` | `AdminUserDetail` | User entries (editable) + notes + QR share card + export |
 | `/admin/audit` | `AdminAuditLog` | Paginated audit log viewer |
 
@@ -244,9 +294,9 @@ All request bodies pass through Zod validation middleware.
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/u/:token` | Validate token, return user profile (incl. personalBest, excl. adminNote) |
-| `GET` | `/api/u/:token/entries` | Paginated entries. Query params: `?page=&pageSize=&from=&to=` (default: page 1, fetch all if pageSize=0) |
+| `GET` | `/api/u/:token/entries` | Paginated entries. Query params: `?page=&pageSize=&from=&to=` (default: page 1, fetch all if pageSize=0, date filter optional) |
 | `POST` | `/api/u/:token/entries` | Create a new entry |
-| `GET` | `/api/u/:token/export` | Export entries as CSV, `?from=&to=` date filter |
+| `GET` | `/api/u/:token/export` | Export entries as CSV, `?from=&to=` date filter (optional) |
 
 ### Admin — User Management
 
@@ -259,13 +309,13 @@ All request bodies pass through Zod validation middleware.
 | `DELETE` | `/api/admin/users/:id` | Soft-delete user (writes AuditLog) |
 | `PATCH` | `/api/admin/users/:id/note` | Update admin Markdown note |
 | `POST` | `/api/admin/users/:id/rotate-token` | Generate new shortToken, invalidate old link (endpoint exists; UI button removed) |
-| `GET` | `/api/admin/users/:id/export` | Export user data as CSV |
+| `GET` | `/api/admin/users/:id/export` | Export user data as CSV, `?from=&to=` date filter (optional) |
 
 ### Admin — Entry Management
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/admin/entries` | Paginated entries. Query params: `?page=&pageSize=&userId=` (default: page 1, pageSize 20) |
+| `GET` | `/api/admin/entries` | Paginated entries. Query params: `?page=&pageSize=&userId=&from=&to=` (default: page 1, pageSize 20, date filter optional) |
 | `PATCH` | `/api/admin/entries/:id` | Edit entry (writes AuditLog) |
 | `DELETE` | `/api/admin/entries/:id` | Delete entry (writes AuditLog) |
 
@@ -332,7 +382,7 @@ const [items, total] = await Promise.all([
 
 - **Authentication:** Removed for simplicity. Admin routes require no login; user routes auto-find first active user if token invalid/missing. App is open-access by design.
 - **Short tokens:** UUID v4 minimum — used for user identification (not authentication).
-- **Markdown rendering:** Rendered via `react-markdown`, which does not pass through raw HTML by default, making it safe without additional sanitization. DOMPurify is available as a dependency but not required for react-markdown usage.
+- **Rich Text rendering:** All rich text HTML content sanitized with DOMPurify before display. Custom WYSIWYG editor with formatting toolbar (bold, italic, underline, lists, alignment). No raw HTML passes through without sanitization.
 - **Rate limiting:** Patient-facing routes (`/api/u/:token/*`) — max 100 requests per 15 minutes per IP. Uses `express-rate-limit`.
 - **Request validation:** All request bodies and query params validated with Zod schemas. Reject invalid input with 400 and descriptive error.
 - **AuditLog:** Append-only. No UPDATE or DELETE operations allowed on this collection.
@@ -346,17 +396,18 @@ const [items, total] = await Promise.all([
 ## Constraints — Do NOT
 
 - Do NOT use `_id` as the short link token — always use the `shortToken` field (UUID v4).
-- Do NOT enable `rehype-raw` in react-markdown without adding DOMPurify sanitization.
+- Do NOT allow raw HTML without DOMPurify sanitization in rich text content.
 - Do NOT hardcode Thai strings in source code — always use i18n keys from `th.json`.
-- Do NOT use the TypeScript `any` type.
+- Do NOT use the TypeScript `any` type. ✅ **Progress:** Admin routes now use proper TypeScript interfaces.
 - Do NOT DELETE or UPDATE AuditLog records.
 - Do NOT expose MongoDB `_id` values in short links or public-facing URLs.
 - All list views (user dashboard list mode, admin user detail, admin entries) MUST use backend pagination with `page` and `pageSize` parameters. Never fetch all entries and paginate on the frontend.
-- Do NOT put business logic in controllers — use the services layer.
+- Do NOT put business logic in controllers — use the services layer. ⚠️ **Partially addressed:** Admin routes split into modular files, but business logic still in route handlers.
 - Do NOT call Mongoose models directly from controllers.
 - Do NOT use `useEffect` + `fetch` for data loading — use TanStack Query.
 - Do NOT build desktop-first layouts — all pages must be mobile-first, scaling up to desktop.
 - Do NOT re-add zone display to entry cards or the dashboard without also restoring the ZoneBadge component — zone data is still returned by the API and can be shown in future.
+- Do NOT create monolithic components (>300 lines) — extract reusable components. ✅ **Implemented:** Large components split into modular, reusable pieces.
 
 ---
 
@@ -367,20 +418,32 @@ const [items, total] = await Promise.all([
 - **Styling:** Tailwind CSS, mobile-first (`sm:`, `md:`, `lg:` breakpoints). Thai-compatible font: `"Sarabun"` from Google Fonts.
 - **Localization:** All UI strings in `frontend/src/i18n/th.json`. Use `useTranslation` hook. No raw Thai text in `.tsx`/`.ts` files.
 - **Date formatting:** Utility in `frontend/src/utils/date.ts`. Convert ISO to Thai B.E. format (`DD/MM/YYYY+543`). Never inline date logic in components.
+- **Date/Time Storage:** All events (create, edit, delete) store full datetime in database (`created_at`, `updated_at`, `timestamp`) as ISO 8601 strings.
+- **Date/Time Display:** All UI displays show only date in Thai Buddhist Era format (e.g., "12/04/2569"). Use `formatThaiDate()` for display, not `formatThaiDateTime()`. Note modals show date only in header.
 - **Error handling (API):** Consistent JSON shape: `{ error: string, code?: string }`. HTTP status codes: 400 validation, 401 unauthorized, 403 forbidden, 404 not found, 429 rate limited, 500 server error.
 - **Error handling (Frontend):** TanStack Query error boundaries. Show Thai-localized error messages.
 - **Comments:** JSDoc only for non-obvious logic. Do not comment self-explanatory code.
 - **Validation:** Zod schemas in `backend/src/validators/`. Shared validation constants (ranges) in a common file importable by both Zod schemas and frontend constants.
+- **Component Architecture:** 
+  - Extract reusable components to avoid monolithic files (>300 lines)
+  - Admin components in `frontend/src/components/admin/`
+  - User components in `frontend/src/components/user/`
+  - Shared utilities in `frontend/src/utils/`
+- **Route Organization:**
+  - Modular route files in `worker/src/routes/` for better maintainability
+  - Admin routes split into `users.ts`, `entries.ts`, `audit.ts`
+  - Shared types in `worker/src/routes/admin/types.ts`
 
 ---
 
 ## Testing
 
-- **Backend:** Jest + Supertest. Test files co-located as `*.test.ts`.
-  - Must test: short link validation middleware, entry CRUD, admin auth, audit log writes, Zod schema validation, zone calculation, CSV export format.
-- **Frontend:** React Testing Library + Vitest.
-  - Must test: Thai B.E. date formatting, zone calculation utility, EntryCard note preview/expand, EntryCard rendering with mock data.
-- Run all tests: `npm test` from the respective `frontend/` or `backend/` directory.
+- **Backend:** Vitest. 32 tests in `worker/src/__tests__/`.
+  - Zone calculation (8 tests), DatabaseClient validation (9 tests), Zod schemas (15 tests).
+- **Frontend:** Vitest. 24 tests in `frontend/src/__tests__/`.
+  - Thai B.E. date formatting (10 tests), zone calculation (6 tests), TypeScript type validation (8 tests).
+- Run all tests: `npm test` from the respective `frontend/` or `worker/` directory.
+- **Total:** 56 tests, all passing.
 
 ---
 
@@ -594,34 +657,20 @@ See `ENVIRONMENTS.md` for complete setup instructions.
 ## Building and Running
 
 ```bash
-# Full stack (recommended)
-docker-compose up
-
-# Frontend only (dev)
+# Frontend (dev)
 cd frontend && npm install && npm run dev
 
-# Backend only (dev)
-cd backend && npm install && npm run dev
-
-# Seed test data (dev only)
-cd backend && npx ts-node src/seed.ts
+# Worker backend (dev)
+cd worker && npm install && npm run dev
 
 # Run tests
-cd frontend && npm test    # Vitest
-cd backend && npm test     # Jest (requires MongoDB)
+cd frontend && npm test    # Vitest (24 tests)
+cd worker && npm test      # Vitest (32 tests)
 ```
-
-### Docker Compose Requirements
-
-- Named volumes for MongoDB persistence.
-- Backend depends on MongoDB with health check (`mongosh --eval 'db.runCommand("ping")'`).
-- Backend exposes `/api/health` for its own health check.
-- Frontend served via nginx in production (not `npm start`).
-- Restart policy: `unless-stopped` for all services.
 
 ---
 
-## Cloudflare Deployment (Alternative)
+## Cloudflare Deployment
 
 In addition to Docker Compose deployment, the project supports **serverless deployment** on Cloudflare with **D1 database** (SQLite).
 
@@ -660,40 +709,7 @@ The Cloudflare backend is in `/worker/` directory with:
 
 ### Database Schema (D1/SQLite)
 
-**users table**
-```sql
-id TEXT PRIMARY KEY
-name TEXT NOT NULL
-age INTEGER
-height REAL
-weight REAL
-green_min INTEGER
-yellow_min INTEGER
-short_link_token TEXT UNIQUE NOT NULL
-created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-```
-
-**entries table**
-```sql
-id TEXT PRIMARY KEY
-user_id TEXT NOT NULL
-peak_flow INTEGER NOT NULL
-spo2 INTEGER
-symptoms TEXT (JSON array)
-notes TEXT
-timestamp DATETIME NOT NULL
-FOREIGN KEY (user_id) REFERENCES users(id)
-```
-
-**audit_logs table**
-```sql
-id TEXT PRIMARY KEY
-action TEXT NOT NULL
-user_id TEXT
-details TEXT
-ip_address TEXT
-timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-```
+See `worker/migrations/0001_schema.sql` for the current schema. Tables: `users`, `entries`, `audit_logs`.
 
 ### Deployment Configuration
 
@@ -816,23 +832,6 @@ After deploying, add DNS manually in Cloudflare Dashboard → **allergyclinic.cc
 
 > **Note:** GitHub Actions workflows handle CI/CD automatically on push to main branch. The `.github/workflows/` directory contains deployment configurations for both Worker and Frontend.
 
-### Cost Comparison
-
-| Service | Docker Compose | Cloudflare |
-|---------|----------------|------------|
-| Hosting | Self-managed | Serverless |
-| Database | MongoDB (512MB free) | D1 (5GB free) |
-| Requests | Unlimited | 100k/day |
-| Global CDN | Manual setup | Built-in |
-
-### Default Admin Credentials
-
-- **Username**: `admin`
-- **Password**: `admin123`
-
-See `worker/DEPLOYMENT.md` for detailed Cloudflare setup instructions.
-
 ---
-
 
 See [CHANGELOGS.md](./CHANGELOGS.md) for version history.

@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown from 'react-markdown';
-import { Eye, Edit2 } from 'lucide-react';
 import { toISODateString } from '../utils/date';
 import { PEAK_FLOW_MIN, PEAK_FLOW_MAX, SPO2_MIN, SPO2_MAX } from '../constants/validation';
+import RichTextEditor from './RichTextEditor';
 
 interface EntryFormProps {
   onSubmit: (data: {
@@ -27,7 +26,6 @@ export default function EntryForm({ onSubmit, isLoading }: EntryFormProps) {
   const [medicationTiming, setMedicationTiming] = useState<'before' | 'after'>('before');
   const [period, setPeriod] = useState<'morning' | 'evening'>('morning');
   const [note, setNote] = useState('');
-  const [showNotePreview, setShowNotePreview] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
   const handleReadingChange = (index: number, value: string) => {
@@ -66,7 +64,7 @@ export default function EntryForm({ onSubmit, isLoading }: EntryFormProps) {
     if (!validate()) return;
 
     onSubmit({
-      date: new Date(date).toISOString(),
+      date,
       peakFlowReadings: readings.map(Number) as [number, number, number],
       spO2: Number(spO2),
       medicationTiming,
@@ -146,90 +144,58 @@ export default function EntryForm({ onSubmit, isLoading }: EntryFormProps) {
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t('entry.spO2')} (%)
-        </label>
-        <input
-          type="number"
-          value={spO2}
-          min={SPO2_MIN}
-          max={SPO2_MAX}
-          onChange={(e) => setSpO2(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {t('entry.medicationTiming')}
-        </label>
-        <div className="flex gap-4">
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="medicationTiming"
-              value="before"
-              checked={medicationTiming === 'before'}
-              onChange={() => setMedicationTiming('before')}
-              className="text-blue-600"
-            />
-            <span>{t('entry.before')}</span>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t('entry.spO2')} (%)
           </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="medicationTiming"
-              value="after"
-              checked={medicationTiming === 'after'}
-              onChange={() => setMedicationTiming('after')}
-              className="text-blue-600"
-            />
-            <span>{t('entry.after')}</span>
-          </label>
-        </div>
-      </div>
-
-      <div>
-        <div className="flex justify-between items-center mb-1">
-          <label className="block text-sm font-medium text-gray-700">
-            {t('entry.note')}
-          </label>
-          <button
-            type="button"
-            onClick={() => setShowNotePreview(!showNotePreview)}
-            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-          >
-            {showNotePreview ? (
-              <>
-                <Edit2 size={12} />
-                {t('entry.editNote')}
-              </>
-            ) : (
-              <>
-                <Eye size={12} />
-                {t('entry.previewNote')}
-              </>
-            )}
-          </button>
-        </div>
-        {showNotePreview ? (
-          <div className="border rounded-lg px-3 py-2 min-h-[72px] bg-gray-50 prose prose-sm max-w-none">
-            {note ? (
-              <ReactMarkdown>{note}</ReactMarkdown>
-            ) : (
-              <p className="text-gray-400 italic">{t('entry.noNote')}</p>
-            )}
-          </div>
-        ) : (
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={3}
-            placeholder={t('entry.notePlaceholder')}
+          <input
+            type="number"
+            value={spO2}
+            min={SPO2_MIN}
+            max={SPO2_MAX}
+            onChange={(e) => setSpO2(e.target.value)}
             className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
-        )}
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {t('entry.medicationTiming')}
+          </label>
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setMedicationTiming('before')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                medicationTiming === 'before' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              {t('entry.before')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMedicationTiming('after')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${
+                medicationTiming === 'after' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'
+              }`}
+            >
+              {t('entry.after')}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {t('entry.note')}
+        </label>
+        <RichTextEditor
+          value={note}
+          onChange={setNote}
+          placeholder={t('entry.notePlaceholder')}
+          minHeight="100px"
+        />
       </div>
 
       <button
