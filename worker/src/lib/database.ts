@@ -1,3 +1,22 @@
+const ALLOWED_TABLES = ['users', 'entries', 'audit_logs'] as const;
+const ALLOWED_ORDER_COLUMNS = [
+  'id', 'first_name', 'last_name', 'nickname', 'created_at', 'updated_at',
+  'date', 'peak_flow', 'spo2', 'medication_timing', 'period',
+  'timestamp'
+] as const;
+
+function assertTable(table: string): asserts table is typeof ALLOWED_TABLES[number] {
+  if (!ALLOWED_TABLES.includes(table as any)) {
+    throw new Error(`Invalid table: ${table}`);
+  }
+}
+
+function assertOrderColumn(column: string): asserts column is typeof ALLOWED_ORDER_COLUMNS[number] {
+  if (!ALLOWED_ORDER_COLUMNS.includes(column as any)) {
+    throw new Error(`Invalid order column: ${column}`);
+  }
+}
+
 export class DatabaseClient {
   constructor(private env: any) {}
 
@@ -7,12 +26,25 @@ export class DatabaseClient {
     limit?: number;
     offset?: number;
   }): Promise<T[]> {
+    assertTable(table);
+    if (options?.orderBy) {
+      assertOrderColumn(options.orderBy);
+    }
+
     let query = `SELECT * FROM ${table} WHERE 1=1`;
     const bindings: any[] = [];
 
     for (const [key, value] of Object.entries(filter)) {
       if (value === null) {
         query += ` AND ${key} IS NULL`;
+      } else if (Array.isArray(value)) {
+        if (value.length === 0) {
+          query += ` AND 1=0`; // No results if empty array
+        } else {
+          const placeholders = value.map(() => '?').join(', ');
+          query += ` AND ${key} IN (${placeholders})`;
+          bindings.push(...value);
+        }
       } else if (typeof value === 'string' && value.includes('%')) {
         query += ` AND ${key} LIKE ?`;
         bindings.push(value);
@@ -26,12 +58,12 @@ export class DatabaseClient {
       query += ` ORDER BY ${options.orderBy} ${options.order || 'ASC'}`;
     }
 
-    if (options?.limit) {
+    if (options?.limit !== undefined) {
       query += ` LIMIT ?`;
       bindings.push(options.limit);
     }
 
-    if (options?.offset) {
+    if (options?.offset !== undefined) {
       query += ` OFFSET ?`;
       bindings.push(options.offset);
     }

@@ -1,10 +1,15 @@
 ## Changelog
 
 ## Current Version
-v1.2.0 (2026-04-11)
+v1.4.0 (2026-04-12)
 
 | Date | Version | Change |
 |------|---------|--------|
+| 2026-04-12 | v45 | Updated date/time display across the system. All events (create, edit, delete) now store full datetime in database (`created_at`, `updated_at`, `timestamp`). All UI displays now show only date in Thai Buddhist Era format (e.g., "12/04/2569"). Updated AdminAuditLog, NoteModal, and UserNoteModal to use formatThaiDate instead of formatThaiDateTime. |
+| 2026-04-12 | v44 | Changed both admin notes and user notes to use rich text (WYSIWYG) editor instead of markdown. Created custom RichTextEditor component with formatting toolbar (bold, italic, underline, lists, alignment). Replaced textarea with rich text editor in EntryForm. Updated EntryCard and NoteModal to display rich text HTML properly. All HTML content sanitized with DOMPurify. Fixed cursor jumping issue in rich text editor. |
+| 2026-04-12 | v43 | Added date range filtering to user dashboard and admin user detail pages. Created reusable DateFilter component with Thai localization. Backend now supports `from` and `to` query parameters for entries. CSV export respects current date filters. Page resets to 1 when date filters change. Added Thai translation keys for date filter UI. Fixed DatabaseClient array value support for IN clauses. Added error handling to admin entries API. |
+| 2026-04-12 | v42 | Refactored backend admin routes from 421-line monolith into modular structure. Split into users.ts, entries.ts, audit.ts, index.ts, and types.ts. Fixed N+1 query in entries route with batch user fetching. Replaced `any` types with proper TypeScript interfaces. Created utility functions for peak flow parsing. |
+| 2026-04-12 | v41 | Refactored frontend components to eliminate code duplication. Extracted admin components: UserProfile, UserShareLink, UserAdminNote, UserEntriesTable, NoteModal. Extracted user components: ViewModeToggle, EntriesCardView, EntriesListView, UserNoteModal. Created shared entryGrouping.ts utility. Reduced AdminUserDetail from 578 to 183 lines (68% reduction). Reduced UserDashboard from 343 to 136 lines (60% reduction). |
 | 2026-04-11 | v40 | Implemented backend pagination for all list views. User dashboard list mode now fetches 80 entries/page (20 days × 4 entries), card mode 10 entries/page. Admin user detail page fetches 80 entries/page. EntryHistory page fixed to use pagination. All pagination moved from frontend to backend for improved performance with large datasets. Updated AGENTS.md with comprehensive pagination documentation. |
 | 2026-04-08 | v39 | PeakFlowTable extracted as shared component used by UserDashboard and AdminUserDetail. Table headers localized via th.json table section. Empty cells render null (no dash). |
 | 2026-04-08 | v38 | Frontend fetches all entries in single request using ?all=true. Replaced sequential page-loop with single API call in UserDashboard and AdminUserDetail. fetchUserEntries and fetchAdminEntries updated with all/from/to params. |

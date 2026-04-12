@@ -39,17 +39,33 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
   const user = c.get('user');
   const page = parseInt(c.req.query('page') || '1');
   const pageSizeParam = c.req.query('pageSize');
-  const pageSize = pageSizeParam ? parseInt(pageSizeParam) : 0; // 0 means fetch all
+  const pageSize = pageSizeParam ? parseInt(pageSizeParam) : 0;
   const offset = pageSize > 0 ? (page - 1) * pageSize : 0;
+  const from = c.req.query('from');
+  const to = c.req.query('to');
 
   let filter: Record<string, any> = { user_id: userId };
 
   const [entries, total] = await Promise.all([
-    db.find<any>('entries', filter, { orderBy: 'date', order: 'DESC', limit: pageSize > 0 ? pageSize : undefined, offset: pageSize > 0 ? offset : 0 }),
+    db.find<any>('entries', filter, { orderBy: 'date', order: 'DESC' }),
     db.count('entries', filter),
   ]);
 
-  const formattedEntries = entries.map((e: any) => {
+  let filteredEntries = entries;
+  if (from) {
+    filteredEntries = filteredEntries.filter((e: any) => e.date >= from);
+  }
+  if (to) {
+    filteredEntries = filteredEntries.filter((e: any) => e.date <= to);
+  }
+
+  const paginatedEntries = pageSize > 0 
+    ? filteredEntries.slice(offset, offset + pageSize)
+    : filteredEntries;
+
+  const filteredTotal = filteredEntries.length;
+
+  const formattedEntries = paginatedEntries.map((e: any) => {
     let peakFlowReadings: number[] = [];
     try {
       peakFlowReadings = JSON.parse(e.peak_flow_readings || '[]');
@@ -76,7 +92,7 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
     };
   });
 
-  return c.json({ entries: formattedEntries, total, page, pageSize });
+  return c.json({ entries: formattedEntries, total: filteredTotal, page, pageSize });
 });
 
 const createEntrySchema = z.object({

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sun, Moon, ChevronDown, ChevronUp } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import { formatThaiDate } from '../utils/date';
 import { getBestReading } from '../utils/zone';
 import type { EntryWithZone } from '../types';
 
-const NOTE_PREVIEW_LENGTH = 60;
+const NOTE_PREVIEW_LENGTH = 100;
 
 export default function EntryCard({ data }: { data: EntryWithZone }) {
   const { t } = useTranslation();
@@ -13,9 +14,12 @@ export default function EntryCard({ data }: { data: EntryWithZone }) {
   const best = getBestReading(entry.peakFlowReadings);
   const [showFullNote, setShowFullNote] = useState(false);
 
-  const notePreview = entry.note.length > NOTE_PREVIEW_LENGTH
-    ? entry.note.slice(0, NOTE_PREVIEW_LENGTH) + '...'
-    : entry.note;
+  const createNotePreview = (html: string): string => {
+    const textOnly = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return textOnly.length > NOTE_PREVIEW_LENGTH
+      ? textOnly.slice(0, NOTE_PREVIEW_LENGTH) + '...'
+      : textOnly;
+  };
 
   return (
     <div className="bg-white rounded-lg p-4 shadow-sm border">
@@ -55,27 +59,32 @@ export default function EntryCard({ data }: { data: EntryWithZone }) {
       </div>
       {entry.note && (
         <div className="mt-2 border-t pt-2">
-          <p className="text-sm text-gray-600">
-            {showFullNote ? entry.note : notePreview}
-          </p>
-          {entry.note.length > NOTE_PREVIEW_LENGTH && (
-            <button
-              onClick={() => setShowFullNote(!showFullNote)}
-              className="text-xs text-blue-600 hover:underline mt-1 flex items-center gap-1"
-            >
-              {showFullNote ? (
-                <>
-                  <ChevronUp size={12} />
-                  Show less
-                </>
-              ) : (
-                <>
-                  <ChevronDown size={12} />
-                  Show more
-                </>
-              )}
-            </button>
+          {showFullNote ? (
+            <div 
+              className="text-sm text-gray-600 prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(entry.note) }}
+            />
+          ) : (
+            <p className="text-sm text-gray-600">
+              {createNotePreview(entry.note)}
+            </p>
           )}
+          <button
+            onClick={() => setShowFullNote(!showFullNote)}
+            className="text-xs text-blue-600 hover:underline mt-1 flex items-center gap-1"
+          >
+            {showFullNote ? (
+              <>
+                <ChevronUp size={12} />
+                Show less
+              </>
+            ) : (
+              <>
+                <ChevronDown size={12} />
+                Show more
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>

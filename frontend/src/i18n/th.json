@@ -21,7 +21,8 @@
     "peakFlow": "Peak Flow",
     "reading": "ครั้งที่ {{number}}",
     "spO2": "SpO₂",
-    "medicationTiming": "การใช้ยา",
+    "medicationTiming": "การพ่นยา",
+    "medicationSection": "การพ่นยา",
     "before": "ก่อนพ่นยา",
     "after": "หลังพ่นยา",
     "period": "ช่วงเวลา",
@@ -88,7 +89,11 @@
     "back": "กลับ",
     "close": "ปิด",
     "notFound": "ไม่พบหน้าที่ต้องการ",
-    "invalidToken": "ลิงก์ไม่ถูกต้องหรือหมดอายุ"
+    "invalidToken": "ลิงก์ไม่ถูกต้องหรือหมดอายุ",
+    "dateFilter": "กรองตามวันที่",
+    "fromDate": "จากวันที่",
+    "toDate": "ถึงวันที่",
+    "clearFilter": "ล้างตัวกรอง"
   },
   "chart": {
     "peakFlowTrend": "แนวโน้มค่าแรงเป่าลม",
