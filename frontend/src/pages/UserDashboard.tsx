@@ -14,10 +14,9 @@ export default function UserDashboard() {
   const { token } = useParams<{ token: string }>();
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<'card' | 'list'>('list');
-  const [entryPage, setEntryPage] = useState(1);
+  const [dayPage, setDayPage] = useState(1);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
-  const cardsPerPage = 10;
-  const listEntriesPerPage = 80;
+  const daysPerPage = 20;
 
   const profileQuery = useQuery({
     queryKey: ['userProfile', token],
@@ -26,24 +25,24 @@ export default function UserDashboard() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['userEntries', token, entryPage, viewMode],
+    queryKey: ['userEntries', token],
     queryFn: () => fetchUserEntries(
       token!,
-      viewMode === 'list' ? listEntriesPerPage : cardsPerPage,
+      0,
       undefined,
       undefined,
-      entryPage
+      1
     ),
     enabled: !!token,
   });
 
   const handleViewModeChange = (mode: 'card' | 'list') => {
     setViewMode(mode);
-    setEntryPage(1);
+    setDayPage(1);
   };
 
   const handlePageChange = (page: number) => {
-    setEntryPage(page);
+    setDayPage(page);
   };
 
   if (profileQuery.isLoading) {
@@ -72,8 +71,18 @@ export default function UserDashboard() {
   const groupedEntries = groupEntriesByDate(allEntries);
   const entriesByDate = convertGroupedToArray(groupedEntries);
 
-  const totalEntries = entriesQuery.data?.total ?? 0;
-  const entriesPerPage = viewMode === 'list' ? listEntriesPerPage : cardsPerPage;
+  const sortedDates = Object.keys(groupedEntries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const totalDays = sortedDates.length;
+  const totalPages = Math.ceil(totalDays / daysPerPage);
+  
+  const startIndex = (dayPage - 1) * daysPerPage;
+  const endIndex = startIndex + daysPerPage;
+  const visibleDates = sortedDates.slice(startIndex, endIndex);
+  const visibleEntriesByDate: Record<string, typeof allEntries> = {};
+  visibleDates.forEach(date => {
+    visibleEntriesByDate[date] = groupedEntries[date];
+  });
+  const visibleEntriesByDateArray = convertGroupedToArray(visibleEntriesByDate);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 max-w-4xl mx-auto space-y-4 pb-24">
@@ -112,17 +121,17 @@ export default function UserDashboard() {
       ) : viewMode === 'card' ? (
         <EntriesCardView
           entries={entriesWithZone}
-          entryPage={entryPage}
-          cardsPerPage={cardsPerPage}
-          totalEntries={totalEntries}
+          dayPage={dayPage}
+          daysPerPage={daysPerPage}
+          totalDays={totalDays}
           onPageChange={handlePageChange}
         />
       ) : (
         <EntriesListView
-          entriesByDate={entriesByDate}
-          entryPage={entryPage}
-          entriesPerPage={entriesPerPage}
-          totalEntries={totalEntries}
+          entriesByDate={visibleEntriesByDateArray}
+          dayPage={dayPage}
+          daysPerPage={daysPerPage}
+          totalDays={totalDays}
           onPageChange={handlePageChange}
           onViewNote={(note, date) => setViewingNote({ note, date })}
         />

@@ -32,7 +32,7 @@ function getBestReadingFromEntry(entry: EntryRecord): number {
   return Math.max(...readings);
 }
 
-async function formatEntryWithZone(entry: EntryRecord, user: UserRecord | null): Promise<FormattedEntry> {
+function formatEntryWithZone(entry: EntryRecord, user: UserRecord | null): FormattedEntry {
   const peakFlowReadings = parsePeakFlowReadings(entry.peak_flow_readings, entry.peak_flow);
   const bestReading = getBestReadingFromEntry(entry);
   const zone = user?.personal_best ? calculateZone(bestReading, user.personal_best) : null;
@@ -127,7 +127,7 @@ entriesApp.patch('/admin/entries/:id', zValidator('json', updateEntrySchema), as
 
   const updated = await db.findOne<EntryRecord>('entries', { id: entryId });
   const user = updated ? await db.findOne<UserRecord>('users', { id: updated.user_id }) : null;
-  const formattedUpdated = updated ? await formatEntryWithZone(updated, user) : null;
+  const formattedUpdated = updated ? formatEntryWithZone(updated, user) : null;
   
   return c.json(formattedUpdated);
 });

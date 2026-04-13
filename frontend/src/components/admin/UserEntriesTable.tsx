@@ -14,11 +14,19 @@ interface Entry {
 
 interface UserEntriesTableProps {
   entriesByDate: Record<string, Entry[]>;
+  totalDays: number;
+  dayPage: number;
+  daysPerPage: number;
+  onPageChange: (page: number) => void;
   onViewNote: (note: string, date: string) => void;
 }
 
 export default function UserEntriesTable({ 
   entriesByDate, 
+  totalDays, 
+  dayPage, 
+  daysPerPage, 
+  onPageChange,
   onViewNote 
 }: UserEntriesTableProps) {
   const { t } = useTranslation();
@@ -52,8 +60,9 @@ export default function UserEntriesTable({
   };
 
   const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const totalPages = Math.ceil(totalDays / daysPerPage);
 
-  if (sortedDates.length === 0) {
+  if (totalDays === 0) {
     return (
       <div className="bg-white rounded-xl p-6 shadow-sm border">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
@@ -152,6 +161,28 @@ export default function UserEntriesTable({
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-4">
+          <button
+            onClick={() => onPageChange(Math.max(1, dayPage - 1))}
+            disabled={dayPage === 1}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <span className="text-sm font-medium text-gray-600">
+            {dayPage} / {totalPages}
+          </span>
+          <button
+            onClick={() => onPageChange(Math.min(totalPages, dayPage + 1))}
+            disabled={dayPage === totalPages}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
+          >
+            <ChevronLeft size={20} className="rotate-180" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
