@@ -1,11 +1,15 @@
 ## Changelog
 
 ## Current Version
-v1.6.0 (2026-04-12)
+v1.10.0 (2026-04-13)
+
+## Version History
 
 | Date | Version | Change |
 |------|---------|--------|
-| 2026-04-12 | v51 | UI cleanup: Removed DateFilter from user dashboard and admin user detail. Fixed EntriesCardView crash by passing correct EntryWithZone objects. Made entire admin user row clickable (copy link button excluded via stopPropagation). Added SPA catch-all redirect to `_redirects`. Added GitHub Actions workflow for Cloudflare Pages deployment (main branch only). Removed GitLab CI config. |
+| 2026-04-13 | v1.10.0 | Updated AGENTS.md with comprehensive project documentation including rate limiting implementation, new test files (api-flows.test.ts, rate-limit.test.ts), DevModeBanner component, and updated file structure. Added references to RATE_LIMITING.md and TEST_PROTOCOL.md documentation. Updated Security section with rate limiting details. Updated Testing section with comprehensive test suite information. Added missing files to file structure (audit.ts, peakFlow.ts, pagination.ts). |
+| 2026-04-14 | v53 | Implemented peak flow zone color display (B-03). EntryCard now shows ZoneBadge and color-coded peak flow values. EntriesListView and UserEntriesTable (admin) now display zone-colored peak flow readings. Fixed hardcoded English strings in table headers to use i18n keys. Updated entryGrouping.ts to preserve zone data through date grouping. |
+| 2026-04-14 | v52 | Implemented rate limiting on all API routes using Cloudflare KV. Patient routes (/api/u/:token/*) limited to 100 requests/15min per IP. Admin routes limited to 300 requests/15min per IP. Returns 429 with Retry-After header when limit exceeded. Added rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset) to all API responses. Created comprehensive unit tests for rate limiting middleware. Updated ENVIRONMENTS.md with KV namespace setup instructions. |
 | 2026-04-12 | v50 | Fixed admin user detail crash: entryGrouping.ts now guards against undefined `date` field. Added `.github/workflows/deploy.yml` for CI/CD. |
 | 2026-04-12 | v49 | Fixed DatabaseClient `updateOne` binding order — SET values must come before WHERE values. Fixed `count()` to use shared `buildWhereClause` for consistent filter handling including $gte/$lte and IN clauses. |
 | 2026-04-12 | v48 | Added comprehensive test suites: 32 backend tests (zone calculation, DatabaseClient validation, Zod schemas) and 24 frontend tests (Thai B.E. date formatting, zone calculation, TypeScript type validation). All tests passing. |
@@ -37,3 +41,75 @@ v1.6.0 (2026-04-12)
 | 2026-04-07 | v22 | Fixed short link 404 - _redirects and absolute FRONTEND_URL |
 | 2026-04-07 | v21 | Deployed full-stack to Cloudflare |
 | 2026-04-10 | v26 | Added separate environment configurations for local, staging, and production. Created `.env.development`, `.env.staging` for frontend with corresponding build scripts. Created `wrangler.dev.toml`, `wrangler.staging.toml` for worker with deploy scripts. Added `ENVIRONMENTS.md` documentation. Fixed infinite loop in `_redirects` file causing deployment failures. |
+
+## Summary of Major Features
+
+### v1.10.0 (2026-04-13)
+- Documentation updates to reflect current project state
+- Added missing files to AGENTS.md file structure
+
+### v53 (2026-04-14)
+- Peak flow zone color display implementation
+- ZoneBadge component restored and integrated
+- Color-coded peak flow values in tables and cards
+
+### v52 (2026-04-14)
+- Rate limiting implementation using Cloudflare KV
+- Separate limits for patient (100/15min) and admin (300/15min) routes
+- Comprehensive rate limiting tests
+
+### v50-v49 (2026-04-12)
+- Bug fixes for admin user detail and DatabaseClient
+- Improved error handling and data consistency
+
+### v48 (2026-04-12)
+- Comprehensive test suite added (32 backend + 24 frontend tests)
+- All tests passing
+
+### v47-v46 (2026-04-12)
+- Security and performance improvements
+- SQL injection prevention
+- N+1 query fixes
+- Date filtering improvements
+
+### v45 (2026-04-12)
+- Date/time display standardization
+- Thai Buddhist Era format throughout UI
+
+### v44 (2026-04-12)
+- Rich text editor implementation
+- WYSIWYG editor for notes
+- DOMPurify sanitization
+
+### v43 (2026-04-12)
+- Date range filtering feature
+- Reusable DateFilter component
+- CSV export with date filters
+
+### v42 (2026-04-12)
+- Backend refactoring
+- Modular route structure
+- Improved code organization
+
+### v41 (2026-04-12)
+- Frontend component refactoring
+- Code duplication elimination
+- Shared utilities
+
+### v40 (2026-04-11)
+- Backend pagination implementation
+- Improved performance for large datasets
+
+### v39-v38 (2026-04-08)
+- Shared PeakFlowTable component
+- Single-request entry fetching
+
+### v37-v34 (2026-04-08)
+- Date range filtering improvements
+- N+1 query fixes
+- Validation enhancements
+
+### v33-v21 (2026-04-07)
+- Initial feature implementations
+- Bug fixes and improvements
+- Cloudflare deployment setup
