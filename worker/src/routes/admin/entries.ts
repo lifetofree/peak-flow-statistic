@@ -86,10 +86,10 @@ entriesApp.get('/admin/entries', async (c) => {
   const users = await db.find<UserRecord>('users', { id: userIds });
   const userMap = new Map(users.map(u => [u.id, u]));
 
-  const formattedEntries = entries.map((e: EntryRecord) => {
+  const formattedEntries = await Promise.all(entries.map(async (e: EntryRecord) => {
     const user = userMap.get(e.user_id) || null;
-    return formatEntryWithZone(e, user);
-  });
+    return await formatEntryWithZone(e, user);
+  }));
 
   return c.json({ entries: formattedEntries, total, page, pageSize });
 });
