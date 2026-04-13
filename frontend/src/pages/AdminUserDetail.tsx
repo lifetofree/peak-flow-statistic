@@ -17,10 +17,7 @@ export default function AdminUserDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [entryPage, setEntryPage] = useState(1);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
-  const daysPerPage = 20;
-  const entriesPerPage = daysPerPage * 4;
 
   const userQuery = useQuery({
     queryKey: ['adminUser', id],
@@ -29,8 +26,8 @@ export default function AdminUserDetail() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['adminEntries', id, entryPage],
-    queryFn: () => fetchAdminEntries(entryPage, id, entriesPerPage),
+    queryKey: ['adminEntries', id],
+    queryFn: () => fetchAdminEntries(1, id, 0),
     enabled: Boolean(id),
   });
 
@@ -133,10 +130,6 @@ export default function AdminUserDetail() {
       ) : (
         <UserEntriesTable
           entriesByDate={entriesByDate}
-          total={entriesQuery.data?.total ?? 0}
-          entryPage={entryPage}
-          entriesPerPage={entriesPerPage}
-          onPageChange={setEntryPage}
           onViewNote={(note, date) => setViewingNote({ note, date })}
         />
       )}

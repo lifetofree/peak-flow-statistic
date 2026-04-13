@@ -14,24 +14,14 @@ interface Entry {
 
 interface UserEntriesTableProps {
   entriesByDate: Record<string, Entry[]>;
-  total: number;
-  entryPage: number;
-  entriesPerPage: number;
-  onPageChange: (page: number) => void;
   onViewNote: (note: string, date: string) => void;
 }
 
 export default function UserEntriesTable({ 
   entriesByDate, 
-  total, 
-  entryPage, 
-  entriesPerPage, 
-  onPageChange,
   onViewNote 
 }: UserEntriesTableProps) {
   const { t } = useTranslation();
-
-  const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
   const renderPFCell = (entry: Entry | null) => {
     if (!entry) return <span className="text-gray-300">-</span>;
@@ -61,9 +51,9 @@ export default function UserEntriesTable({
     );
   };
 
-  const totalPages = Math.ceil(total / entriesPerPage);
+  const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
-  if (total === 0) {
+  if (sortedDates.length === 0) {
     return (
       <div className="bg-white rounded-xl p-6 shadow-sm border">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
@@ -162,28 +152,6 @@ export default function UserEntriesTable({
           </tbody>
         </table>
       </div>
-
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4 mt-4">
-          <button
-            onClick={() => onPageChange(Math.max(1, entryPage - 1))}
-            disabled={entryPage === 1}
-            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <span className="text-sm font-medium text-gray-600">
-            {entryPage} / {totalPages}
-          </span>
-          <button
-            onClick={() => onPageChange(Math.min(totalPages, entryPage + 1))}
-            disabled={entryPage === totalPages}
-            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
-          >
-            <ChevronLeft size={20} className="rotate-180" />
-          </button>
-        </div>
-      )}
     </div>
   );
 }
