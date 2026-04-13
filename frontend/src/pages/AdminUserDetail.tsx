@@ -3,8 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, Trash2 } from 'lucide-react';
-import { fetchUser, fetchAdminEntries, deleteUser, getAdminExportUrl } from '../api/admin';
-import { groupEntriesByDate, convertGroupedToArray, type GroupedEntries } from '../utils/entryGrouping';
+import { fetchUser, fetchAdminEntries, deleteUser, getAdminExportUrl, EntryWithZone } from '../api/admin';
+import { groupEntriesByDateWithZone, convertGroupedToArrayWithZone, type GroupedEntriesWithZone } from '../utils/entryGrouping';
 import UserProfile from '../components/admin/UserProfile';
 import UserShareLink from '../components/admin/UserShareLink';
 import UserAdminNote from '../components/admin/UserAdminNote';
@@ -97,20 +97,32 @@ export default function AdminUserDetail() {
     );
   }
 
-  const allEntries = entriesQuery.data?.entries ?? [];
-  const groupedEntries = groupEntriesByDate(allEntries);
-  const sortedDates = Object.keys(groupedEntries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const allEntriesWithZone: EntryWithZone[] = (entriesQuery.data?.entries ?? []).map(item => ({
+    _id: item._id,
+    userId: item.userId,
+    date: item.date,
+    period: item.period as 'morning' | 'evening',
+    medicationTiming: item.medicationTiming as 'before' | 'after',
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    peakFlowReadings: item.peakFlowReadings,
+    spO2: item.spO2,
+    note: item.note,
+    zone: item.zone ?? undefined,
+  }));
+  const groupedEntriesWithZone = groupEntriesByDateWithZone(allEntriesWithZone);
+  const sortedDates = Object.keys(groupedEntriesWithZone).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
   const totalDays = sortedDates.length;
   const totalPages = Math.ceil(totalDays / daysPerPage);
   
   const startIndex = (dayPage - 1) * daysPerPage;
   const endIndex = startIndex + daysPerPage;
   const visibleDates = sortedDates.slice(startIndex, endIndex);
-  const visibleEntriesByDate: Partial<GroupedEntries> = {};
+  const visibleEntriesByDate: Partial<GroupedEntriesWithZone> = {};
   visibleDates.forEach(date => {
-    visibleEntriesByDate[date] = groupedEntries[date];
+    visibleEntriesByDate[date] = groupedEntriesWithZone[date];
   });
-  const entriesByDate = convertGroupedToArray(visibleEntriesByDate as GroupedEntries);
+  const entriesByDate = convertGroupedToArrayWithZone(visibleEntriesByDate as GroupedEntriesWithZone);
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
@@ -159,7 +171,7 @@ export default function AdminUserDetail() {
         </div>
       ) : (
         <UserEntriesTable
-          entriesByDate={entriesByDate as Record<string, { _id: string; date: string; period: 'morning' | 'evening'; medicationTiming: 'before' | 'after'; peakFlowReadings: number[]; spO2: number; note: string }[]>}
+          entriesByDate={entriesByDate}
           totalDays={totalDays}
           dayPage={dayPage}
           daysPerPage={daysPerPage}

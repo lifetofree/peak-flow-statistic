@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-type Zone = 'green' | 'yellow' | 'red';
+type Zone = 'green' | 'orange' | 'yellow' | 'red';
 
 interface ZoneResult {
   zone: Zone;
@@ -13,9 +13,11 @@ function calculateZone(bestReading: number, personalBest: number): ZoneResult {
   }
   const percentage = Math.round((bestReading / personalBest) * 100);
   let zone: Zone;
-  if (percentage >= 80) {
+  if (percentage >= 90) {
     zone = 'green';
-  } else if (percentage >= 50) {
+  } else if (percentage >= 80) {
+    zone = 'orange';
+  } else if (percentage >= 60) {
     zone = 'yellow';
   } else {
     zone = 'red';
@@ -24,22 +26,28 @@ function calculateZone(bestReading: number, personalBest: number): ZoneResult {
 }
 
 describe('zone calculation', () => {
-  it('green zone: 80-100% of personal best', () => {
-    expect(calculateZone(400, 500).zone).toBe('green');
-    expect(calculateZone(500, 500).zone).toBe('green');
+  it('green zone: >= 90% of personal best', () => {
     expect(calculateZone(450, 500).zone).toBe('green');
+    expect(calculateZone(500, 500).zone).toBe('green');
+    expect(calculateZone(460, 500).zone).toBe('green');
   });
 
-  it('yellow zone: 50-79% of personal best', () => {
+  it('orange zone: >= 80% and < 90% of personal best', () => {
+    expect(calculateZone(400, 500).zone).toBe('orange');
+    expect(calculateZone(425, 500).zone).toBe('orange');
+    expect(calculateZone(440, 500).zone).toBe('orange');
+  });
+
+  it('yellow zone: >= 60% and < 80% of personal best', () => {
     expect(calculateZone(350, 500).zone).toBe('yellow');
-    expect(calculateZone(250, 500).zone).toBe('yellow');
+    expect(calculateZone(300, 500).zone).toBe('yellow');
     expect(calculateZone(394, 500).zone).toBe('yellow');
   });
 
-  it('red zone: <50% of personal best', () => {
+  it('red zone: < 60% of personal best', () => {
+    expect(calculateZone(250, 500).zone).toBe('red');
     expect(calculateZone(200, 500).zone).toBe('red');
     expect(calculateZone(0, 500).zone).toBe('red');
-    expect(calculateZone(244, 500).zone).toBe('red');
   });
 
   it('returns red when personal best is 0', () => {
@@ -49,8 +57,8 @@ describe('zone calculation', () => {
   });
 
   it('calculates correct percentage', () => {
-    expect(calculateZone(400, 500).percentage).toBe(80);
-    expect(calculateZone(250, 500).percentage).toBe(50);
+    expect(calculateZone(450, 500).percentage).toBe(90);
+    expect(calculateZone(300, 500).percentage).toBe(60);
     expect(calculateZone(100, 500).percentage).toBe(20);
   });
 

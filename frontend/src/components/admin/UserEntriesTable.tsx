@@ -1,25 +1,23 @@
 import { useTranslation } from 'react-i18next';
 import { History, ChevronLeft, Sun, Moon, FileText } from 'lucide-react';
 import { formatThaiDate } from '../../utils/date';
-
-interface Entry {
-  _id: string;
-  date: string;
-  period: 'morning' | 'evening';
-  medicationTiming: 'before' | 'after';
-  peakFlowReadings: number[];
-  spO2: number;
-  note: string;
-}
+import { EntryWithZone } from '../../utils/entryGrouping';
 
 interface UserEntriesTableProps {
-  entriesByDate: Record<string, Entry[]>;
+  entriesByDate: Record<string, EntryWithZone[]>;
   totalDays: number;
   dayPage: number;
   daysPerPage: number;
   onPageChange: (page: number) => void;
   onViewNote: (note: string, date: string) => void;
 }
+
+const ZONE_TEXT_COLORS: Record<string, string> = {
+  green: 'text-green-600',
+  orange: 'text-orange-600',
+  yellow: 'text-yellow-600',
+  red: 'text-red-600',
+};
 
 export default function UserEntriesTable({ 
   entriesByDate, 
@@ -33,12 +31,23 @@ export default function UserEntriesTable({
 
   const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
-  const renderPFCell = (entry: Entry | null) => {
+  const renderPFCell = (entry: EntryWithZone | null) => {
     if (!entry) return <span className="text-gray-300">-</span>;
-    return <span className="text-xs">{entry.peakFlowReadings?.join('/') || '-'}</span>;
+    const readings = entry.peakFlowReadings;
+    if (!readings || !Array.isArray(readings)) return <span className="text-xs">-</span>;
+    return (
+      <span className="text-xs font-medium text-gray-700">
+        {readings.map((r, i) => (
+          <span key={i}>
+            {i > 0 && <span className="text-gray-400">/</span>}
+            {r}
+          </span>
+        ))}
+      </span>
+    );
   };
 
-  const renderSpO2Cell = (entry: Entry | null) => {
+  const renderSpO2Cell = (entry: EntryWithZone | null) => {
     if (!entry) return <span className="text-gray-300">-</span>;
     return (
       <span className={`px-1 py-0.5 rounded text-xs font-bold ${
@@ -49,7 +58,7 @@ export default function UserEntriesTable({
     );
   };
 
-  const renderNoteCell = (entry: Entry | null, date: string) => {
+  const renderNoteCell = (entry: EntryWithZone | null, date: string) => {
     if (!entry || !entry.note) return <span className="text-gray-300">-</span>;
     return (
       <button
@@ -88,54 +97,56 @@ export default function UserEntriesTable({
         <table className="w-full text-xs">
           <thead className="bg-gray-50 border-b">
             <tr>
-              <th className="px-2 py-2 font-semibold text-gray-600 border-r border-gray-300" rowSpan={2}>Date</th>
+              <th className="px-2 py-2 font-semibold text-gray-600 border-r border-gray-300" rowSpan={2}>
+                {t('entry.date')}
+              </th>
               <th className="px-2 py-2 text-center text-orange-600 font-bold border-r border-orange-200" colSpan={3}>
                 <div className="flex items-center justify-center gap-1">
                   <Sun className="text-orange-500" size={12} />
-                  <span>Morning - Before Med</span>
+                  <span>{t('table.morningBeforeMed')}</span>
                 </div>
               </th>
               <th className="px-2 py-2 text-center text-orange-600 font-bold border-r border-orange-200" colSpan={3}>
                 <div className="flex items-center justify-center gap-1">
                   <Sun className="text-orange-500" size={12} />
-                  <span>Morning - After Med</span>
+                  <span>{t('table.morningAfterMed')}</span>
                 </div>
               </th>
               <th className="px-2 py-2 text-center text-indigo-600 font-bold border-r border-indigo-200" colSpan={3}>
                 <div className="flex items-center justify-center gap-1">
                   <Moon className="text-indigo-600" size={12} />
-                  <span>Evening - Before Med</span>
+                  <span>{t('table.eveningBeforeMed')}</span>
                 </div>
               </th>
               <th className="px-2 py-2 text-center text-indigo-600 font-bold" colSpan={3}>
                 <div className="flex items-center justify-center gap-1">
                   <Moon className="text-indigo-600" size={12} />
-                  <span>Evening - After Med</span>
+                  <span>{t('table.eveningAfterMed')}</span>
                 </div>
               </th>
             </tr>
             <tr>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">PF(L/Min)</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">SpO2</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">Note</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">PF(L/Min)</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">SpO2</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">Note</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">PF(L/Min)</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">SpO2</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">Note</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">PF(L/Min)</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">SpO2</th>
-              <th className="px-2 py-1 text-center font-semibold text-gray-500 bg-indigo-50/10">Note</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">{t('table.pfUnit')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">{t('entry.spO2')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">{t('entry.note')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">{t('table.pfUnit')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">{t('entry.spO2')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-orange-100 bg-orange-50/10">{t('entry.note')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">{t('table.pfUnit')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">{t('entry.spO2')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">{t('entry.note')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">{t('table.pfUnit')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 border-r border-indigo-100 bg-indigo-50/10">{t('entry.spO2')}</th>
+              <th className="px-2 py-1 text-center font-semibold text-gray-500 bg-indigo-50/10">{t('entry.note')}</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {sortedDates.map((dateKey) => {
               const dateEntries = entriesByDate[dateKey] || [];
-              const morningBeforeEntry = dateEntries.find((e: Entry) => e.period === 'morning' && e.medicationTiming === 'before');
-              const morningAfterEntry = dateEntries.find((e: Entry) => e.period === 'morning' && e.medicationTiming === 'after');
-              const eveningBeforeEntry = dateEntries.find((e: Entry) => e.period === 'evening' && e.medicationTiming === 'before');
-              const eveningAfterEntry = dateEntries.find((e: Entry) => e.period === 'evening' && e.medicationTiming === 'after');
+              const morningBeforeEntry = dateEntries.find((e) => e.period === 'morning' && e.medicationTiming === 'before');
+              const morningAfterEntry = dateEntries.find((e) => e.period === 'morning' && e.medicationTiming === 'after');
+              const eveningBeforeEntry = dateEntries.find((e) => e.period === 'evening' && e.medicationTiming === 'before');
+              const eveningAfterEntry = dateEntries.find((e) => e.period === 'evening' && e.medicationTiming === 'after');
 
               const displayDate = morningBeforeEntry?.date || morningAfterEntry?.date || eveningBeforeEntry?.date || eveningAfterEntry?.date || dateKey;
 

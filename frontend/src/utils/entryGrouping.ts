@@ -12,13 +12,24 @@
  */
 export interface Entry {
   _id: string;
+  userId?: string;
   date: string;
   period: 'morning' | 'evening';
   medicationTiming: 'before' | 'after';
   createdAt: string;
+  updatedAt?: string;
   peakFlowReadings?: number[];
   spO2?: number;
   note?: string;
+}
+
+export interface ZoneInfo {
+  zone: 'green' | 'orange' | 'yellow' | 'red';
+  percentage: number;
+}
+
+export interface EntryWithZone extends Entry {
+  zone?: ZoneInfo;
 }
 
 export interface GroupedEntries {
@@ -30,6 +41,15 @@ export interface GroupedEntries {
   };
 }
 
+export interface GroupedEntriesWithZone {
+  [date: string]: {
+    'morning-before': EntryWithZone | null;
+    'morning-after': EntryWithZone | null;
+    'evening-before': EntryWithZone | null;
+    'evening-after': EntryWithZone | null;
+  };
+}
+
 /**
  * Groups entries by date, then by period-medication combination.
  * If multiple entries exist for the same slot, only the most recent (by createdAt) is kept.
@@ -38,6 +58,38 @@ export interface GroupedEntries {
  */
 export function groupEntriesByDate(entries: Entry[]): GroupedEntries {
   const grouped: GroupedEntries = {};
+  
+  entries.forEach((entry) => {
+    if (!entry.date) return;
+    const dateKey = entry.date.split('T')[0];
+    const subKey = `${entry.period}-${entry.medicationTiming}`;
+    
+    if (!grouped[dateKey]) {
+      grouped[dateKey] = {
+        'morning-before': null,
+        'morning-after': null,
+        'evening-before': null,
+        'evening-after': null,
+      };
+    }
+    
+    if (!grouped[dateKey][subKey] || 
+        new Date(entry.createdAt) > new Date(grouped[dateKey][subKey]?.createdAt || 0)) {
+      grouped[dateKey][subKey] = entry;
+    }
+  });
+  
+  return grouped;
+}
+
+/**
+ * Groups entries with zone info by date, then by period-medication combination.
+ * If multiple entries exist for the same slot, only the most recent (by createdAt) is kept.
+ * @param entries - Flat array of entry objects with zone info
+ * @returns Nested object keyed by ISO date, each containing 4 slots with zone info
+ */
+export function groupEntriesByDateWithZone(entries: EntryWithZone[]): GroupedEntriesWithZone {
+  const grouped: GroupedEntriesWithZone = {};
   
   entries.forEach((entry) => {
     if (!entry.date) return;
@@ -77,6 +129,26 @@ export function convertGroupedToArray(grouped: GroupedEntries): Record<string, E
       grouped[date]['evening-before'],
       grouped[date]['evening-after'],
     ].filter(Boolean) as Entry[];
+  });
+  
+  return entriesByDate;
+}
+
+/**
+ * Converts grouped object format with zone to array format grouped by date.
+ * @param grouped - Output of groupEntriesByDateWithZone()
+ * @returns Object keyed by date, each containing array of non-null entries with zone
+ */
+export function convertGroupedToArrayWithZone(grouped: GroupedEntriesWithZone): Record<string, EntryWithZone[]> {
+  const entriesByDate: Record<string, EntryWithZone[]> = {};
+  
+  Object.keys(grouped).forEach((date) => {
+    entriesByDate[date] = [
+      grouped[date]['morning-before'],
+      grouped[date]['morning-after'],
+      grouped[date]['evening-before'],
+      grouped[date]['evening-after'],
+    ].filter(Boolean) as EntryWithZone[];
   });
   
   return entriesByDate;

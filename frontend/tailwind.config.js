@@ -9,6 +9,7 @@ export default {
       colors: {
         zone: {
           green: '#22c55e',
+          orange: '#f97316',
           yellow: '#eab308',
           red: '#ef4444',
         },

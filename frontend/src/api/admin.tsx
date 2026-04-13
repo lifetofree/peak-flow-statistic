@@ -1,5 +1,10 @@
 import { adminFetch, apiFetch } from './client';
 import type { User, Entry, AuditLog } from '../types';
+import type { ZoneResult } from '../types';
+
+export interface EntryWithZone extends Entry {
+  zone?: ZoneResult;
+}
 
 export function login(password: string): Promise<{ token: string }> {
   return apiFetch('/admin/login', {
@@ -65,7 +70,7 @@ export function fetchAdminEntries(
   pageSize?: number,
   from?: string,
   to?: string
-): Promise<{ entries: Entry[]; total: number; page: number; pageSize: number }> {
+): Promise<{ entries: EntryWithZone[]; total: number; page: number; pageSize: number }> {
   const params = new URLSearchParams({ page: String(page) });
   if (userId) params.set('userId', userId);
   if (pageSize !== undefined) params.set('pageSize', String(pageSize));

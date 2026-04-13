@@ -44,7 +44,8 @@
   },
   "zone": {
     "green": "ปกติ",
-    "yellow": "ระวัง",
+    "orange": "ระวัง",
+    "yellow": "เตือน",
     "red": "อันตราย",
     "noPersonalBest": "ยังไม่ได้ตั้งค่า Personal Base กรุณาติดต่อแพทย์"
   },

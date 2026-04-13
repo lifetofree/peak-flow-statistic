@@ -4,13 +4,14 @@ import { Sun, Moon, ChevronDown, ChevronUp } from 'lucide-react';
 import DOMPurify from 'dompurify';
 import { formatThaiDate } from '../utils/date';
 import { getBestReading } from '../utils/zone';
+import ZoneBadge from './ZoneBadge';
 import type { EntryWithZone } from '../types';
 
 const NOTE_PREVIEW_LENGTH = 100;
 
 export default function EntryCard({ data }: { data: EntryWithZone }) {
   const { t } = useTranslation();
-  const { entry } = data;
+  const { entry, zone } = data;
   const best = getBestReading(entry.peakFlowReadings);
   const [showFullNote, setShowFullNote] = useState(false);
 
@@ -20,6 +21,8 @@ export default function EntryCard({ data }: { data: EntryWithZone }) {
       ? textOnly.slice(0, NOTE_PREVIEW_LENGTH) + '...'
       : textOnly;
   };
+
+  const zoneColorClass = 'text-gray-700';
 
   return (
     <div className="bg-white rounded-lg p-4 shadow-sm border">
@@ -37,11 +40,15 @@ export default function EntryCard({ data }: { data: EntryWithZone }) {
             </span>
           </span>
         </div>
+        {zone && <ZoneBadge zone={zone.zone} percentage={zone.percentage} />}
       </div>
       <div className="grid grid-cols-3 gap-2 text-sm">
         <div>
           <span className="text-gray-500">{t('entry.peakFlow')}: </span>
-          <span className="font-semibold">{entry.peakFlowReadings.join(' / ')} L/min</span>
+          <span className={`font-semibold ${zoneColorClass}`}>
+            {entry.peakFlowReadings.join(' / ')}
+          </span>
+          <span className="text-gray-400"> L/min</span>
         </div>
         <div>
           <span className="text-gray-500">{t('entry.spO2')}: </span>
@@ -54,8 +61,8 @@ export default function EntryCard({ data }: { data: EntryWithZone }) {
           <span>{t(`entry.${entry.medicationTiming}`)}</span>
         </div>
       </div>
-      <div className="text-xs text-gray-400 mt-1">
-        Best: {best} L/min
+      <div className={`text-xs mt-1 font-medium ${zoneColorClass}`}>
+        Best: {best} L/min {zone && `(${zone.percentage}%)`}
       </div>
       {entry.note && (
         <div className="mt-2 border-t pt-2">
@@ -76,12 +83,12 @@ export default function EntryCard({ data }: { data: EntryWithZone }) {
             {showFullNote ? (
               <>
                 <ChevronUp size={12} />
-                Show less
+                {t('entry.showLess')}
               </>
             ) : (
               <>
                 <ChevronDown size={12} />
-                Show more
+                {t('entry.showMore')}
               </>
             )}
           </button>

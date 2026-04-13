@@ -1,108 +1,131 @@
-# PeakFlowStatX — Issues
+# PeakFlowStat — Issues
 
-All previously tracked issues have been resolved as of 2026-04-07 (v15).
+## Current Status (2026-04-13)
 
-## Resolved Changes
+All previously tracked issues from v15 (2026-04-07) have been resolved. The following issues are identified based on the comprehensive code review and current project state.
 
-| Date | Change |
-|------|--------|
-| 2026-04-07 | v10: Fixed `period` field migration — optional with default `'morning'`. Added `period` to CSV export and audit diff. CSV export sends Authorization header. Created `seed-john.ts`. |
-| 2026-04-07 | v11: Documented duplicate validation constants and zone calculation with ⚠️ sync comments in both files. |
-| 2026-04-07 | v12: Replaced Math.random() shortCode generation with `crypto.randomBytes()` — cryptographically secure 8-char hex. |
-| 2026-04-07 | v13: Removed rotateToken UI button and clickCount display from admin user detail page. |
-| 2026-04-07 | v14: Removed native share button from ShareLinkCard. EntryCard notes now show 60-char preview with show more/less toggle. Admin can edit entry records. |
-| 2026-04-07 | v15: Added cancel button to admin create user form. |
+## Active Issues
+
+### 🔴 HIGH PRIORITY
+
+#### Issue #1: Business Logic in Route Handlers
+- **Status:** Known Technical Debt
+- **Location:** [`worker/src/routes/user.ts`](worker/src/routes/user.ts:58-113), [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:48-81), [`worker/src/routes/admin/entries.ts`](worker/src/routes/admin/entries.ts:55-95)
+- **Description:** Business logic is embedded directly in route handlers, violating the Single Responsibility Principle. This makes testing difficult and code harder to maintain.
+- **Impact:** Reduced code maintainability, difficult to unit test business logic
+- **Recommendation:** Extract business logic into a service layer (e.g., `worker/src/services/entryService.ts`, `worker/src/services/auditService.ts`)
+- **Priority:** High - Should be addressed before adding new features
+
+#### Issue #2: N+1 Query in User List with Last Entry Date
+- **Status:** Active
+- **Location:** [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:66-78)
+- **Description:** After fetching users, the code fetches ALL entries for those users to find the last entry date. This is inefficient.
+- **Impact:** Performance degradation with large datasets, unnecessary database queries
+- **Recommendation:** Use a subquery or window function approach to fetch only the latest entry per user
+- **Priority:** High - Affects performance with many users
+
+### 🟡 MEDIUM PRIORITY
+
+#### Issue #3: Duplicate Peak Flow Parsing Logic
+- **Status:** Active
+- **Location:** 
+  - [`worker/src/routes/user.ts`](worker/src/routes/user.ts:86-91)
+  - [`worker/src/routes/admin/entries.ts`](worker/src/routes/admin/entries.ts:21-33)
+  - [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:232-237)
+- **Description:** Peak flow readings parsing logic is duplicated in multiple places.
+- **Impact:** Code duplication, maintenance burden, potential for inconsistencies
+- **Recommendation:** Create a shared utility function in `worker/src/lib/peakFlow.ts` (already exists but not fully utilized)
+- **Priority:** Medium - Code quality issue
+
+#### Issue #4: Audit Log Writing Duplication
+- **Status:** Active
+- **Location:** 
+  - [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:109-117, 151-159, 175-183, 200-208)
+  - [`worker/src/routes/admin/entries.ts`](worker/src/routes/admin/entries.ts:118-126, 145-153)
+- **Description:** Audit log writing code is duplicated across multiple endpoints.
+- **Impact:** Code duplication, maintenance burden
+- **Recommendation:** Create an audit service in `worker/src/lib/audit.ts` (already exists but not fully utilized)
+- **Priority:** Medium - Code quality issue
+
+#### Issue #5: No Caching for User Profile
+- **Status:** Active
+- **Location:** [`worker/src/routes/user.ts`](worker/src/routes/user.ts:46-56)
+- **Description:** User profile is fetched on every request without caching.
+- **Impact:** Unnecessary database queries, increased latency
+- **Recommendation:** Implement caching using Cloudflare Workers KV for user profiles
+- **Priority:** Medium - Performance optimization
+
+#### Issue #6: No Input Sanitization for Notes on Backend
+- **Status:** Partially Addressed
+- **Location:** [`worker/src/routes/user.ts`](worker/src/routes/user.ts:139), [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:101)
+- **Description:** While the frontend uses DOMPurify, the backend doesn't sanitize HTML content before storing it. This could lead to stored XSS if the frontend sanitization is bypassed.
+- **Impact:** Potential security vulnerability
+- **Recommendation:** Add HTML sanitization on the backend before storing notes
+- **Priority:** Medium - Security concern
+
+### 🟢 LOW PRIORITY
+
+#### Issue #7: CSV Generation in Memory
+- **Status:** Active
+- **Location:** [`worker/src/routes/user.ts`](worker/src/routes/user.ts:160-184), [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:213-245)
+- **Description:** CSV is built entirely in memory, which could be problematic for large datasets.
+- **Impact:** Memory usage for large exports
+- **Recommendation:** Use streaming for large exports
+- **Priority:** Low - Only affects large datasets
+
+## Resolved Issues (2026-04-07 to 2026-04-14)
+
+| Date | Issue | Resolution |
+|------|-------|------------|
+| 2026-04-14 | No rate limiting on API routes | ✅ Implemented Cloudflare KV-based rate limiting (v52) |
+| 2026-04-14 | Peak flow zone color not displayed | ✅ Implemented zone color display (v53) |
+| 2026-04-12 | Duplicate `PAGE_SIZE` declaration | ✅ Fixed (v34) |
+| 2026-04-12 | CSV date range filter bug | ✅ Fixed (v34) |
+| 2026-04-12 | N+1 query in `/admin/entries` | ✅ Fixed (v36) |
+| 2026-04-12 | Missing note Zod validation | ✅ Fixed (v35) |
+| 2026-04-12 | No PF value range validation | ✅ Fixed (v35) |
+| 2026-04-12 | Frontend fetched ALL pages via sequential loop | ✅ Fixed with `?all=true` (v38) |
+| 2026-04-12 | Massive code duplication in table rendering | ✅ Fixed with shared PeakFlowTable (v39) |
+| 2026-04-12 | Table headers not localized | ✅ Fixed (v39) |
+| 2026-04-12 | Empty cells showed `-` against spec | ✅ Fixed (v39) |
+| 2026-04-12 | No date range filter on `/admin/entries` | ✅ Fixed (v37) |
+| 2026-04-12 | SQL injection risk in DatabaseClient | ✅ Fixed with allowlists (v46) |
+| 2026-04-12 | Date timezone issue in EntryForm | ✅ Fixed (v47) |
+| 2026-04-12 | Admin user detail crash | ✅ Fixed (v50) |
+| 2026-04-12 | DatabaseClient updateOne binding order | ✅ Fixed (v49) |
+| 2026-04-12 | No comprehensive test suite | ✅ Added 32 backend + 24 frontend tests (v48) |
 
 ## Notes
 
-- Authentication was intentionally removed for simplicity (open-access design)
-- Zone calculations and validation constants are duplicated across frontend/backend by design (no shared package)
-- `seed-jonh.ts` (typo) should be manually deleted; use `seed-john.ts` instead
-- `rotate-token` API endpoint still exists but the UI button has been removed
-- Do NOT use `www.peakflowstat.allergyclinic.cc` — third-level subdomains are not covered by Cloudflare Universal SSL
-- PF values use default color (no zone coloring) in both admin and user pages
-- L/min unit is shown in column header (PF (L/min)) not in cell values
-- Data structure is consistent: both admin and user APIs return wrapped entry objects (`{ entry: {...}, zone: ... }`)
+- **Authentication:** Intentionally removed for simplicity (open-access design)
+- **Zone calculations and validation constants:** Duplicated across frontend/backend by design (no shared package)
+- **Rate limiting:** Fully implemented using Cloudflare KV (v52)
+- **Zone display:** Fully implemented with color coding (v53)
+- **Business logic in route handlers:** Acknowledged as technical debt, documented in AGENTS.md
+- **No backend admin auth:** Intentional by design for open-access
 
----
+## Design Decisions
 
-## Code Review Issues (2026-04-08)
+The following are intentional design choices, not issues:
 
-> **Status: All fixable issues resolved on 2026-04-08.**
-> Issue #11 (no backend admin auth) is acknowledged as intentional by design.
+1. **No Admin Authentication:** The admin panel is intentionally open-access by design. This is suitable for the current use case but should be reconsidered if real patient data is handled in production.
 
-### Critical Bugs
+2. **Duplicate Validation Constants:** Validation constants are intentionally duplicated between frontend and backend (no shared package). Both must be kept in sync when updating.
 
-**1. ✅ FIXED — Duplicate `PAGE_SIZE` declaration in `admin.ts`**
-- Removed duplicate `const PAGE_SIZE = 20`. All imports moved to top. Added `PEAK_FLOW_MAX = 900` constant.
+3. **No `www.` Subdomain:** Do NOT use `www.peakflowstat.allergyclinic.cc` — third-level subdomains are not covered by Cloudflare Universal SSL.
 
-**2. ✅ FIXED — CSV date range filter was broken (`admin.ts`)**
-- Was: `to` overwrote `from` when both provided.
-- Now: uses `{ $gte: from, $lte: to }` operator object. Both bounds applied correctly.
+4. **Zone Data in API:** Zone data is returned by the API and displayed in the UI (as of v53). Previously it was returned but not displayed.
 
-**3. ✅ FIXED — N+1 query in `/admin/entries`**
-- Removed per-entry `db.findOne('users', ...)` and `calculateZone()` call entirely. Zone is not used by the frontend (`fetchAdminEntries` returns `Entry[]` with no zone field). Entries now formatted directly.
+5. **Soft-Delete Only:** User deletion is soft-delete only (`deleted_at`). Hard-delete requires direct DB access.
 
----
+6. **Append-Only Audit Log:** Never UPDATE or DELETE `audit_logs` records.
 
-### Missing Validations
+## Next Steps
 
-**4. ✅ FIXED — `/admin/users/:id/note` had no Zod validation**
-- Added `adminNoteSchema = z.object({ adminNote: z.string().max(5000) })` with `zValidator`. Handler uses `c.req.valid('json')`.
-
-**5. ✅ FIXED — `peakFlowReadings` values had no min/max validation**
-- Each reading now validated `.int().min(50).max(900)` in both `createEntrySchema` (user.ts) and `updateEntrySchema` (admin.ts).
-
----
-
-### Performance Issues
-
-**6. ✅ FIXED — Frontend fetched ALL pages via sequential loop on load**
-- Added `?all=true` support to both `/api/u/:token/entries` and `/api/admin/entries`. When set, `LIMIT`/`OFFSET` are omitted.
-- Both `fetchUserEntries` and `fetchAdminEntries` updated to accept `all?: boolean`.
-- `UserDashboard` and `AdminUserDetail` now make a single `all=true` request — no more page loop.
-
----
-
-### Code Quality
-
-**7. ✅ FIXED — Massive code duplication in table rendering**
-- Extracted shared `frontend/src/components/PeakFlowTable.tsx`. Accepts `Entry[]`, handles dedup, grouping, pagination, and note modal internally. Both pages now use `<PeakFlowTable entries={...} />`.
-
-**8. ✅ FIXED — Table headers not localized**
-- Added `table` section to `th.json`: `morningBeforeMed`, `morningAfterMed`, `eveningBeforeMed`, `eveningAfterMed`, `pfUnit`. All headers now use `t('table.*')` and `t('entry.*')`.
-
-**9. ✅ FIXED — Empty cells showed `-` against spec**
-- `renderPF()` and `renderSpO2()` in `PeakFlowTable` now return `null` for missing entries (no dash placeholder).
-
-**10. ✅ FIXED — No date range filter on `/admin/entries`**
-- Added `from`/`to` query params to `GET /admin/entries` using `$gte`/`$lte` operators. `fetchAdminEntries` updated with `from?`/`to?` params.
-
----
-
-### Security Notes
-
-**11. ⚠️ BY DESIGN — No admin authentication on the backend**
-- `authHeaders()` in `client.ts` sends a token but no backend middleware validates it. Intentional open-access design. Revisit if real patient data is handled in production.
-
-**12. ✅ FIXED — SQL injection risk in `DatabaseClient`**
-- Added `ALLOWED_TABLES` and `ALLOWED_ORDER_COLUMNS` whitelists. `assertTable()` and `assertOrderColumn()` called in every method. Added `$gte`/`$lte` operator support in `find()` and `count()`.
-
----
-
-### Fix Summary
-
-| # | Issue | Severity | Status |
-|---|-------|----------|--------|
-| 1 | Duplicate `PAGE_SIZE` constant | Build error | ✅ Fixed |
-| 2 | CSV date range filter bug | Bug | ✅ Fixed |
-| 3 | N+1 in `/admin/entries` | Performance | ✅ Fixed |
-| 6 | Fetch all pages on load | Performance | ✅ Fixed |
-| 4 | Missing note Zod validation | Security | ✅ Fixed |
-| 5 | No PF value range validation | Data integrity | ✅ Fixed |
-| 7 | Table code duplication | Maintainability | ✅ Fixed |
-| 8 | Hardcoded English headers | i18n | ✅ Fixed |
-| 9 | Empty cell `-` vs empty | UI consistency | ✅ Fixed |
-| 10 | No entry date range search in admin | Missing feature | ✅ Fixed |
-| 11 | No backend admin auth | Security (by design) | ⚠️ N/A |
-| 12 | SQL injection risk in DatabaseClient | Security | ✅ Fixed |
+1. **High Priority:** Address business logic in route handlers by extracting to service layer
+2. **High Priority:** Fix N+1 query in user list with last entry date
+3. **Medium Priority:** Consolidate duplicate peak flow parsing logic
+4. **Medium Priority:** Consolidate audit log writing code
+5. **Medium Priority:** Implement caching for user profiles
+6. **Medium Priority:** Add backend HTML sanitization for notes
+7. **Low Priority:** Implement streaming for CSV exports

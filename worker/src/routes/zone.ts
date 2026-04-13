@@ -1,4 +1,4 @@
-export type Zone = 'green' | 'yellow' | 'red';
+export type Zone = 'green' | 'orange' | 'yellow' | 'red';
 
 export interface ZoneResult {
   zone: Zone;
@@ -13,9 +13,11 @@ export function calculateZone(bestReading: number, personalBest: number): ZoneRe
   const percentage = Math.round((bestReading / personalBest) * 100);
 
   let zone: Zone;
-  if (percentage >= 80) {
+  if (percentage >= 90) {
     zone = 'green';
-  } else if (percentage >= 50) {
+  } else if (percentage >= 80) {
+    zone = 'orange';
+  } else if (percentage >= 60) {
     zone = 'yellow';
   } else {
     zone = 'red';

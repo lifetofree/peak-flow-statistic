@@ -8,6 +8,7 @@ interface ZoneBadgeProps {
 
 const ZONE_STYLES: Record<Zone, string> = {
   green: 'bg-zone-green/20 text-green-800 border-zone-green',
+  orange: 'bg-zone-orange/20 text-orange-800 border-zone-orange',
   yellow: 'bg-zone-yellow/20 text-yellow-800 border-zone-yellow',
   red: 'bg-zone-red/20 text-red-800 border-zone-red',
 };

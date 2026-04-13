@@ -15,6 +15,8 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { DatabaseClient } from '../lib/database';
 import { calculateZone } from './zone';
+import { rateLimitPatient } from '../middleware/rateLimit';
+import { parsePeakFlowReadings } from '../lib/peakFlow';
 import type { Env } from '../index';
 import type { UserRecord } from './admin/types';
 
@@ -27,6 +29,8 @@ type Variables = {
 };
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
+
+app.use('/u/*', rateLimitPatient);
 
 /**
  * Validates short_token and loads user. Returns 404 if invalid or soft-deleted.
@@ -83,13 +87,10 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
   ]);
 
   const formattedEntries = entries.map((e: any) => {
-    let peakFlowReadings: number[] = [];
-    try {
-      peakFlowReadings = JSON.parse(e.peak_flow_readings || '[]');
-    } catch {
-      peakFlowReadings = [e.peak_flow];
-    }
-    const bestReading = peakFlowReadings.length > 0 ? Math.max(...peakFlowReadings) : e.peak_flow;
+    const { readings: peakFlowReadings, best: bestReading } = parsePeakFlowReadings(
+      e.peak_flow_readings,
+      e.peak_flow
+    );
     const zone = user.personal_best ? calculateZone(bestReading, user.personal_best) : null;
 
     return {
@@ -161,8 +162,16 @@ app.get('/u/:token/export', validateShortLink, async (c) => {
   const db = new DatabaseClient(c.env);
   const userId = c.get('userId');
   const user = c.get('user');
+  const from = c.req.query('from');
+  const to = c.req.query('to');
 
-  const entries = await db.find<any>('entries', { user_id: userId }, { orderBy: 'date', order: 'ASC' });
+  let filter: Record<string, any> = { user_id: userId };
+  const dateFilter: Record<string, any> = {};
+  if (from) dateFilter.$gte = from;
+  if (to) dateFilter.$lte = to;
+  if (from || to) filter.date = dateFilter;
+
+  const entries = await db.find<any>('entries', filter, { orderBy: 'date', order: 'ASC' });
 
   let csv = 'Date,Period,Best Peak Flow,SpO2,Medication,Note\n';
   for (const entry of entries) {

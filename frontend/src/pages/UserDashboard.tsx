@@ -4,11 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Activity, Plus, AlertCircle } from 'lucide-react';
 import { fetchUserProfile, fetchUserEntries } from '../api/user';
-import { groupEntriesByDate, convertGroupedToArray } from '../utils/entryGrouping';
+import { 
+  groupEntriesByDateWithZone, 
+  convertGroupedToArrayWithZone, 
+  GroupedEntriesWithZone,
+  EntryWithZone 
+} from '../utils/entryGrouping';
 import ViewModeToggle from '../components/user/ViewModeToggle';
 import EntriesCardView from '../components/user/EntriesCardView';
 import EntriesListView from '../components/user/EntriesListView';
 import UserNoteModal from '../components/user/UserNoteModal';
+import DateFilter from '../components/DateFilter';
 
 export default function UserDashboard() {
   const { token } = useParams<{ token: string }>();
@@ -16,6 +22,8 @@ export default function UserDashboard() {
   const [viewMode, setViewMode] = useState<'card' | 'list'>('list');
   const [dayPage, setDayPage] = useState(1);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const daysPerPage = 20;
 
   const profileQuery = useQuery({
@@ -25,12 +33,12 @@ export default function UserDashboard() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['userEntries', token],
+    queryKey: ['userEntries', token, fromDate, toDate],
     queryFn: () => fetchUserEntries(
       token!,
       0,
-      undefined,
-      undefined,
+      fromDate || undefined,
+      toDate || undefined,
       1
     ),
     enabled: !!token,
@@ -43,6 +51,12 @@ export default function UserDashboard() {
 
   const handlePageChange = (page: number) => {
     setDayPage(page);
+  };
+
+  const handleClearDateFilter = () => {
+    setFromDate('');
+    setToDate('');
+    setDayPage(1);
   };
 
   if (profileQuery.isLoading) {
@@ -67,22 +81,25 @@ export default function UserDashboard() {
 
   const user = profileQuery.data!;
   const entriesWithZone = entriesQuery.data?.entries ?? [];
-  const allEntries = entriesWithZone.map(item => item.entry).filter(Boolean);
-  const groupedEntries = groupEntriesByDate(allEntries);
-  const entriesByDate = convertGroupedToArray(groupedEntries);
+  const allEntriesWithZone: EntryWithZone[] = entriesWithZone.map(item => ({
+    ...item.entry,
+    zone: item.zone ?? undefined,
+  })).filter(Boolean);
+  const groupedEntriesWithZone = groupEntriesByDateWithZone(allEntriesWithZone);
+  const entriesByDate = convertGroupedToArrayWithZone(groupedEntriesWithZone);
 
-  const sortedDates = Object.keys(groupedEntries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const sortedDates = Object.keys(groupedEntriesWithZone).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
   const totalDays = sortedDates.length;
   const totalPages = Math.ceil(totalDays / daysPerPage);
   
   const startIndex = (dayPage - 1) * daysPerPage;
   const endIndex = startIndex + daysPerPage;
   const visibleDates = sortedDates.slice(startIndex, endIndex);
-  const visibleEntriesByDate: Record<string, typeof allEntries> = {};
+  const visibleEntriesByDate: GroupedEntriesWithZone = {};
   visibleDates.forEach(date => {
-    visibleEntriesByDate[date] = groupedEntries[date];
+    visibleEntriesByDate[date] = groupedEntriesWithZone[date];
   });
-  const visibleEntriesByDateArray = convertGroupedToArray(visibleEntriesByDate);
+  const visibleEntriesByDateArray = convertGroupedToArrayWithZone(visibleEntriesByDate);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 max-w-4xl mx-auto space-y-4 pb-24">
@@ -110,11 +127,19 @@ export default function UserDashboard() {
         )}
       </div>
 
+      <DateFilter
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={(date) => { setFromDate(date); setDayPage(1); }}
+        onToDateChange={(date) => { setToDate(date); setDayPage(1); }}
+        onClear={handleClearDateFilter}
+      />
+
       {entriesQuery.isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      ) : allEntries.length === 0 ? (
+      ) : allEntriesWithZone.length === 0 ? (
         <div className="bg-white rounded-2xl p-8 text-center border border-dashed shadow-sm">
           <p className="text-gray-500 italic">{t('entry.noEntries')}</p>
         </div>
