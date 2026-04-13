@@ -1,31 +1,18 @@
 import { useTranslation } from 'react-i18next';
-import { useEffect, useState } from 'react';
 
 /**
- * DevModeBanner - Displays a banner at the top of the page when running in dev mode
+ * DevModeBanner - Displays a banner at the top of the page when running in development mode
  * 
- * Conditions for showing the banner:
- * 1. VITE_GIT_BRANCH environment variable is set to 'pfs'
- * 2. The application is running on localhost (hostname is 'localhost' or '127.0.0.1')
+ * Shows banner when VITE_DEV_BANNER=true is set in .env.development
+ * Uses import.meta.env.MODE to detect 'development' vs 'production'
  */
 export default function DevModeBanner() {
   const { t } = useTranslation();
-  const [isDevMode, setIsDevMode] = useState(false);
 
-  useEffect(() => {
-    // Check if we're on the pfs branch
-    const isPfsBranch = import.meta.env.VITE_GIT_BRANCH === 'pfs';
-    
-    // Check if we're running on localhost
-    const isLocalhost = 
-      window.location.hostname === 'localhost' || 
-      window.location.hostname === '127.0.0.1' ||
-      window.location.hostname === '';
-    
-    setIsDevMode(isPfsBranch && isLocalhost);
-  }, []);
+  const isDevMode = import.meta.env.MODE === 'development';
+  const showBanner = isDevMode && import.meta.env.VITE_DEV_BANNER === 'true';
 
-  if (!isDevMode) {
+  if (!showBanner) {
     return null;
   }
 

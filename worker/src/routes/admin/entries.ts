@@ -56,7 +56,8 @@ entriesApp.get('/admin/entries', async (c) => {
   const db = new DatabaseClient(c.env);
   const page = parseInt(c.req.query('page') || '1');
   const userId = c.req.query('userId');
-  const pageSize = c.req.query('pageSize') ? parseInt(c.req.query('pageSize')!) : PAGE_SIZE;
+  const pageSizeParam = c.req.query('pageSize');
+  const pageSize = pageSizeParam !== null && pageSizeParam !== '' ? parseInt(pageSizeParam) : PAGE_SIZE;
   const from = c.req.query('from');
   const to = c.req.query('to');
 
