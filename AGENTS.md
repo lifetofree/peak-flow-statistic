@@ -15,6 +15,7 @@ PeakFlowStat is a **mobile-first** web application for asthma patients to track 
 - **Audit Logging:** All CREATE/UPDATE/DELETE operations on `User` and `Entry` write an append-only `AuditLog` record inline in the route handler.
 - **Short Links:** Each user has an 8-char cryptographically random `shortCode` (4 random bytes → hex via `crypto.getRandomValues`). `/s/:code` on the worker performs a 302 redirect to the absolute frontend URL and increments `clickCount`. Click counts stored in DB but **not displayed** in the UI.
 - **Share Link UI:** Admin can view/copy the short URL and see a QR code in the user detail view. Copy button per row in the user list. Native share button removed.
+- **Rate Limiting:** IP-based rate limiting on all API routes using Cloudflare KV. Patient routes limited to 100 requests/15min, admin routes limited to 300 requests/15min. Returns 429 with Retry-After header when limit exceeded.
 - **Localisation:** Thai only (`th.json`). All UI strings via `useTranslation`. No raw Thai text in source files.
 
 ### Technology Stack
@@ -25,6 +26,7 @@ PeakFlowStat is a **mobile-first** web application for asthma patients to track 
 | Frontend extras | react-i18next, react-quill, react-markdown, DOMPurify, qrcode.react, recharts, lucide-react |
 | Backend | Hono.js on Cloudflare Workers |
 | Database | Cloudflare D1 (SQLite) via `DatabaseClient` wrapper |
+| Rate Limiting | Cloudflare KV (distributed rate limit tracking) |
 | Validation | Zod + `@hono/zod-validator` |
 | Testing | Vitest (frontend + backend) |
 | Deployment | Cloudflare Pages (frontend) + Cloudflare Workers (backend) |
@@ -62,6 +64,7 @@ PeakFlowStat/
 │       │   │   ├── UserNoteModal.tsx
 │       │   │   └── ViewModeToggle.tsx
 │       │   ├── DateFilter.tsx
+│       │   ├── DevModeBanner.tsx    # Development mode banner (VITE_DEV_BANNER=true)
 │       │   ├── EntryCard.tsx        # Entry card with 60-char note preview + show more/less
 │       │   ├── EntryForm.tsx        # New entry form
 │       │   ├── PeakFlowChart.tsx    # Exists but NOT rendered
@@ -97,14 +100,24 @@ PeakFlowStat/
 │   │   ├── 0001_schema.sql          # Full schema (users, entries, audit_logs)
 │   │   ├── 0002_seed.sql
 │   │   └── 0003_add_medication_time.sql
+│   ├── RATE_LIMITING.md             # Rate limiting implementation documentation
+│   ├── TEST_PROTOCOL.md             # Integration test protocol
 │   └── src/
 │       ├── __tests__/
+│       │   ├── api-flows.test.ts    # Comprehensive API flow tests (880 lines)
 │       │   ├── database-validation.test.ts
+│       │   ├── rate-limit.test.ts   # Rate limiting middleware tests
 │       │   ├── schemas.test.ts
 │       │   └── zone.test.ts
+│       ├── constants/
+│       │   └── pagination.ts        # DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE constants
 │       ├── index.ts                 # Hono app entry, CORS, route mounting
 │       ├── lib/
-│       │   └── database.ts          # DatabaseClient with SQL-injection allowlists
+│       │   ├── audit.ts             # Audit log writing utilities
+│       │   ├── database.ts          # DatabaseClient with SQL-injection allowlists
+│       │   └── peakFlow.ts          # Peak flow parsing utilities
+│       ├── middleware/
+│       │   └── rateLimit.ts         # Rate limiting middleware (Cloudflare KV)
 │       └── routes/
 │           ├── admin/
 │           │   ├── audit.ts         # GET /api/admin/audit
@@ -217,6 +230,8 @@ PeakFlowStat/
 | `POST` | `/api/u/:token/entries` | — | Create entry (Zod validated) |
 | `GET` | `/api/u/:token/export` | `from`, `to` | CSV download |
 
+> **Rate Limiting:** All user routes are limited to 100 requests per 15 minutes per IP. Returns 429 with `Retry-After` header when exceeded.
+
 ### Admin — User management
 
 | Method | Path | Description |
@@ -243,6 +258,8 @@ PeakFlowStat/
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/api/admin/audit` | Paginated, `?userId=&action=&page=` (20/page) |
+
+> **Rate Limiting:** All admin routes are limited to 300 requests per 15 minutes per IP. Returns 429 with `Retry-After` header when exceeded.
 
 ---
 
@@ -348,6 +365,7 @@ Thin wrapper around D1 with SQL-injection prevention via allowlists.
 |---------|--------|
 | Admin authentication | **None by design** — open-access. `authHeaders()` in `client.ts` sends a token but no backend middleware validates it. |
 | User authentication | Token-based via `shortToken` (UUID v4). `validateShortLink` middleware rejects unknown/soft-deleted tokens with 404. |
+| Rate limiting | IP-based rate limiting on all API routes using Cloudflare KV. Patient routes: 100 req/15min, Admin routes: 300 req/15min. Returns 429 with Retry-After header. |
 | Rich text rendering | All HTML sanitised with DOMPurify before display. |
 | SQL injection | Prevented via table/column/order-column allowlists in `DatabaseClient`. Parameterised queries throughout. |
 | CORS | Restricted to `CORS_ORIGIN` env var (comma-separated list). |
@@ -379,8 +397,14 @@ Thin wrapper around D1 with SQL-injection prevention via allowlists.
 ## Testing
 
 - **Framework:** Vitest for both frontend and backend.
-- **Backend tests** (`worker/src/__tests__/`): zone calculation, Zod schema validation, `DatabaseClient` allowlist enforcement.
+- **Backend tests** (`worker/src/__tests__/`):
+  - `api-flows.test.ts` — Comprehensive API flow tests (880 lines) covering admin user management, admin entry management, and user flows
+  - `rate-limit.test.ts` — Rate limiting middleware tests
+  - `database-validation.test.ts` — DatabaseClient allowlist enforcement
+  - `schemas.test.ts` — Zod schema validation
+  - `zone.test.ts` — Zone calculation
 - **Frontend tests** (`frontend/src/__tests__/`): Thai B.E. date formatting, zone calculation, type guards.
+- **Test Protocol:** See `worker/TEST_PROTOCOL.md` for comprehensive test documentation.
 - Run: `npm test` from `frontend/` or `worker/`.
 
 ---
@@ -412,12 +436,23 @@ cd worker && npm run deploy             # production
 | File | Purpose |
 |------|---------|
 | `frontend/public/_redirects` | `/s/* https://api.peakflowstat.allergyclinic.cc/s/:splat 302` |
-| `worker/wrangler.toml` | Production worker: `DB` binding, `CORS_ORIGIN`, `FRONTEND_URL` |
-| `worker/wrangler.dev.toml` | Local dev worker config |
-| `worker/wrangler.staging.toml` | Staging worker config |
+| `worker/wrangler.toml` | Production worker: `DB` binding, `CORS_ORIGIN`, `FRONTEND_URL`, `RATE_LIMIT` KV namespace |
+| `worker/wrangler.dev.toml` | Local dev worker config with `RATE_LIMIT` KV namespace |
+| `worker/wrangler.staging.toml` | Staging worker config with `RATE_LIMIT` KV namespace |
 | `frontend/.env.development` | `VITE_API_URL=http://localhost:8787/api` |
 | `frontend/.env.production` | `VITE_API_URL=https://api.peakflowstat.allergyclinic.cc/api` |
 | `worker/.dev.vars` | `JWT_SECRET`, `CORS_ORIGIN`, `FRONTEND_URL` for local dev |
+
+> **Rate Limiting Setup:** Before first deployment, create a KV namespace for each environment:
+> ```bash
+> # Local dev
+> npx wrangler kv:namespace create "RATE_LIMIT" --preview
+> # Staging
+> npx wrangler kv:namespace create "RATE_LIMIT" --preview
+> # Production
+> npx wrangler kv:namespace create "RATE_LIMIT"
+> ```
+> Then add the returned `id` (and `preview_id` for dev/staging) to the respective `wrangler*.toml` file. See `worker/RATE_LIMITING.md` for details.
 
 > Do NOT connect the Cloudflare Pages project to GitLab CI/CD — `worker/wrangler.toml` in the repo root causes the Pages build pipeline to run `npx wrangler deploy` instead of `npm run build`.
 
@@ -638,3 +673,5 @@ After deploying, add DNS manually in Cloudflare Dashboard → **allergyclinic.cc
 
 See [CHANGELOGS.md](./CHANGELOGS.md) for version history.
 See [ENVIRONMENTS.md](./ENVIRONMENTS.md) for full environment setup instructions.
+See [worker/RATE_LIMITING.md](./worker/RATE_LIMITING.md) for rate limiting implementation details.
+See [worker/TEST_PROTOCOL.md](./worker/TEST_PROTOCOL.md) for comprehensive test documentation.

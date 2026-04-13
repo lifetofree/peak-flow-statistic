@@ -12,5 +12,12 @@ binding = "DB"
 database_name = "peakflowstat-db-staging"
 database_id = "YOUR_STAGING_DATABASE_ID"
 
+# KV namespace for rate limiting (staging)
+# Create with: npx wrangler kv:namespace create "RATE_LIMIT" --preview
+# Then replace the id below with the returned value
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "YOUR_STAGING_RATE_LIMIT_KV_ID"
+
 [[routes]]
 pattern = "api-staging.peakflowstat.allergyclinic.cc"

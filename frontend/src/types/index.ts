@@ -35,7 +35,7 @@ export interface Entry {
   updatedAt: string;
 }
 
-export type Zone = 'green' | 'yellow' | 'red';
+export type Zone = 'green' | 'orange' | 'yellow' | 'red';
 
 export interface ZoneResult {
   zone: Zone;

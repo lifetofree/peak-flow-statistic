@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import DevModeBanner from './components/DevModeBanner';
 
 const UserDashboard = lazy(() => import('./pages/UserDashboard'));
 const NewEntry = lazy(() => import('./pages/NewEntry'));
@@ -35,18 +36,21 @@ export default function App() {
   }, [t]);
   
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/admin" replace />} />
-        <Route path="/u/:token" element={<UserDashboard />} />
-        <Route path="/u/:token/new" element={<NewEntry />} />
-        <Route path="/u/:token/entries" element={<EntryHistory />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/users/:id" element={<AdminUserDetail />} />
-        <Route path="/admin/audit" element={<AdminAuditLog />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+    <>
+      <DevModeBanner />
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/admin" replace />} />
+          <Route path="/u/:token" element={<UserDashboard />} />
+          <Route path="/u/:token/new" element={<NewEntry />} />
+          <Route path="/u/:token/entries" element={<EntryHistory />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/users/:id" element={<AdminUserDetail />} />
+          <Route path="/admin/audit" element={<AdminAuditLog />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </>
   );
 }

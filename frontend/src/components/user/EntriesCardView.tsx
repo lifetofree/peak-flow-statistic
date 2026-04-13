@@ -1,23 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { History, ChevronLeft } from 'lucide-react';
 import EntryCard from '../EntryCard';
-
-interface Entry {
-  entry: {
-    _id: string;
-    date: string;
-    period: 'morning' | 'evening';
-    medicationTiming: 'before' | 'after';
-    peakFlowReadings: number[];
-    spO2: number;
-    note: string;
-    createdAt: string;
-  };
-  zone: any;
-}
+import { EntryWithZone } from '../../types';
 
 interface EntriesCardViewProps {
-  entries: Entry[];
+  entries: EntryWithZone[];
   dayPage: number;
   daysPerPage: number;
   totalDays: number;

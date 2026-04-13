@@ -1,10 +1,11 @@
 import { Hono } from 'hono';
 import { DatabaseClient } from '../../lib/database';
+import { DEFAULT_PAGE_SIZE } from '../../constants/pagination';
 import type { Env } from '../../index';
 import type { AuditLogRecord, FormattedAuditLog } from './types';
 
 const auditApp = new Hono<{ Bindings: Env }>();
-const PAGE_SIZE = 20;
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 function formatAuditLog(log: AuditLogRecord): FormattedAuditLog {
   return {

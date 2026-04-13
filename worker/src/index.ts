@@ -7,6 +7,7 @@ import redirectRoutes from './routes/redirect';
 
 export interface Env {
   DB: D1Database;
+  RATE_LIMIT: KVNamespace;
   JWT_SECRET: string;
   CORS_ORIGIN: string;
   FRONTEND_URL: string;

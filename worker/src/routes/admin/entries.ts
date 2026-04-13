@@ -3,11 +3,14 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { DatabaseClient } from '../../lib/database';
 import { calculateZone } from '../zone';
+import { parsePeakFlowReadings } from '../../lib/peakFlow';
+import { writeUpdateAudit, writeDeleteAudit } from '../../lib/audit';
+import { DEFAULT_PAGE_SIZE } from '../../constants/pagination';
 import type { Env } from '../../index';
 import type { EntryRecord, UserRecord, FormattedEntry } from './types';
 
 const entriesApp = new Hono<{ Bindings: Env }>();
-const PAGE_SIZE = 20;
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 const updateEntrySchema = z.object({
   date: z.string().optional(),
@@ -18,23 +21,11 @@ const updateEntrySchema = z.object({
   note: z.string().optional(),
 });
 
-function parsePeakFlowReadings(readingsStr: string | null, fallback: number): number[] {
-  try {
-    const parsed = JSON.parse(readingsStr || '[]');
-    return Array.isArray(parsed) ? parsed : [fallback];
-  } catch {
-    return [fallback];
-  }
-}
-
-function getBestReadingFromEntry(entry: EntryRecord): number {
-  const readings = parsePeakFlowReadings(entry.peak_flow_readings, entry.peak_flow);
-  return Math.max(...readings);
-}
-
 function formatEntryWithZone(entry: EntryRecord, user: UserRecord | null): FormattedEntry {
-  const peakFlowReadings = parsePeakFlowReadings(entry.peak_flow_readings, entry.peak_flow);
-  const bestReading = getBestReadingFromEntry(entry);
+  const { readings: peakFlowReadings, best: bestReading } = parsePeakFlowReadings(
+    entry.peak_flow_readings,
+    entry.peak_flow
+  );
   const zone = user?.personal_best ? calculateZone(bestReading, user.personal_best) : null;
 
   return {
@@ -56,7 +47,8 @@ entriesApp.get('/admin/entries', async (c) => {
   const db = new DatabaseClient(c.env);
   const page = parseInt(c.req.query('page') || '1');
   const userId = c.req.query('userId');
-  const pageSize = c.req.query('pageSize') ? parseInt(c.req.query('pageSize')!) : PAGE_SIZE;
+  const pageSizeParam = c.req.query('pageSize');
+  const pageSize = pageSizeParam !== null && pageSizeParam !== '' ? parseInt(pageSizeParam) : PAGE_SIZE;
   const from = c.req.query('from');
   const to = c.req.query('to');
 
@@ -115,20 +107,12 @@ entriesApp.patch('/admin/entries/:id', zValidator('json', updateEntrySchema), as
 
   await db.updateOne('entries', { id: entryId }, updates);
 
-  await db.insertOne('audit_logs', {
-    id: crypto.randomUUID(),
-    admin_id: 'admin',
-    target_id: entryId,
-    target_model: 'Entry',
-    action: 'UPDATE',
-    diff: JSON.stringify({ before, after: { ...entry, ...updates } }),
-    timestamp: now,
-  });
+  await writeUpdateAudit(db, entryId, 'Entry', before, { ...entry, ...updates });
 
   const updated = await db.findOne<EntryRecord>('entries', { id: entryId });
   const user = updated ? await db.findOne<UserRecord>('users', { id: updated.user_id }) : null;
   const formattedUpdated = updated ? formatEntryWithZone(updated, user) : null;
-  
+
   return c.json(formattedUpdated);
 });
 
@@ -142,15 +126,7 @@ entriesApp.delete('/admin/entries/:id', async (c) => {
 
   await db.deleteOne('entries', { id: entryId });
 
-  await db.insertOne('audit_logs', {
-    id: crypto.randomUUID(),
-    admin_id: 'admin',
-    target_id: entryId,
-    target_model: 'Entry',
-    action: 'DELETE',
-    diff: JSON.stringify({ before: entry, after: null }),
-    timestamp: now,
-  });
+  await writeDeleteAudit(db, entryId, 'Entry', entry as unknown as Record<string, unknown>);
 
   return c.json({ success: true });
 });

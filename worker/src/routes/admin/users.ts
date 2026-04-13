@@ -2,11 +2,13 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { DatabaseClient } from '../../lib/database';
+import { writeCreateAudit, writeUpdateAudit, writeDeleteAudit } from '../../lib/audit';
+import { DEFAULT_PAGE_SIZE } from '../../constants/pagination';
 import type { Env } from '../../index';
 import type { UserRecord, FormattedUser } from './types';
 
 const usersApp = new Hono<{ Bindings: Env }>();
-const PAGE_SIZE = 20;
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 const createUserSchema = z.object({
   firstName: z.string().min(1),
@@ -106,15 +108,7 @@ usersApp.post('/admin/users', zValidator('json', createUserSchema), async (c) =>
 
   await db.insertOne('users', { ...user });
 
-  await db.insertOne('audit_logs', {
-    id: crypto.randomUUID(),
-    admin_id: 'admin',
-    target_id: user.id,
-    target_model: 'User',
-    action: 'CREATE',
-    diff: JSON.stringify({ before: null, after: user }),
-    timestamp: now,
-  });
+  await writeCreateAudit(db, user.id, 'User', { ...user });
 
   return c.json(formatUser(user), 201);
 });
@@ -148,15 +142,7 @@ usersApp.patch('/admin/users/:id', zValidator('json', updateUserSchema), async (
 
   await db.updateOne('users', { id: userId }, updates);
 
-  await db.insertOne('audit_logs', {
-    id: crypto.randomUUID(),
-    admin_id: 'admin',
-    target_id: userId,
-    target_model: 'User',
-    action: 'UPDATE',
-    diff: JSON.stringify({ before, after: { ...user, ...updates } }),
-    timestamp: now,
-  });
+  await writeUpdateAudit(db, userId, 'User', before, { ...user, ...updates });
 
   const updated = await db.findOne<UserRecord>('users', { id: userId });
   return c.json(formatUser(updated!));
@@ -172,15 +158,7 @@ usersApp.delete('/admin/users/:id', async (c) => {
 
   await db.updateOne('users', { id: userId }, { deleted_at: now, updated_at: now });
 
-  await db.insertOne('audit_logs', {
-    id: crypto.randomUUID(),
-    admin_id: 'admin',
-    target_id: userId,
-    target_model: 'User',
-    action: 'DELETE',
-    diff: JSON.stringify({ before: user, after: null }),
-    timestamp: now,
-  });
+  await writeDeleteAudit(db, userId, 'User', { ...user });
 
   return c.json({ success: true });
 });
@@ -197,15 +175,7 @@ usersApp.patch('/admin/users/:id/note', zValidator('json', adminNoteSchema), asy
   const before = { adminNote: user.admin_note || '' };
   await db.updateOne('users', { id: userId }, { admin_note: adminNote, updated_at: now });
 
-  await db.insertOne('audit_logs', {
-    id: crypto.randomUUID(),
-    admin_id: 'admin',
-    target_id: userId,
-    target_model: 'User',
-    action: 'UPDATE',
-    diff: JSON.stringify({ before, after: { adminNote } }),
-    timestamp: now,
-  });
+  await writeUpdateAudit(db, userId, 'User', before, { adminNote });
 
   return c.json({ success: true });
 });

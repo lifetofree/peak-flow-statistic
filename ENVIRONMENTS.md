@@ -44,8 +44,17 @@ cd worker
 npx wrangler d1 create peakflowstat-db-staging
 ```
 
-### 2. Update Database ID
+### 1.5. Create Staging KV Namespace for Rate Limiting
+```bash
+cd worker
+npx wrangler kv:namespace create "RATE_LIMIT" --preview
+```
+
+Copy the returned `id` and `preview_id` and update `wrangler.staging.toml`.
+
+### 2. Update Database ID and KV Namespace
 Copy the returned `database_id` and update `wrangler.staging.toml`.
+Copy the returned KV `id` and `preview_id` and update `wrangler.staging.toml`.
 
 ### 3. Run Schema and Seed
 ```bash
@@ -66,7 +75,25 @@ npm run build:staging
 npx wrangler pages deploy dist --project-name=peakflowstat-staging --branch=staging
 ```
 
+## Setup Production Environment
+
+### Create Production KV Namespace for Rate Limiting (One-time Setup)
+```bash
+cd worker
+npx wrangler kv:namespace create "RATE_LIMIT"
+```
+
+Copy the returned `id` and update `wrangler.toml`.
+
 ## Local Development
+
+### Create Local KV Namespace (One-time Setup)
+```bash
+cd worker
+npx wrangler kv:namespace create "RATE_LIMIT" --preview
+```
+
+Copy the returned `id` and `preview_id` and update `wrangler.dev.toml`.
 
 ### Start Worker (Local)
 ```bash
