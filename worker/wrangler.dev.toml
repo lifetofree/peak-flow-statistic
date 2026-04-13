@@ -9,8 +9,8 @@ FRONTEND_URL = "http://localhost:5173"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "peakflowstat-db"
-database_id = "812f290e-51dc-433b-a2d8-4156dadd72d0"
+database_name = "peakflowstat-db-dev"
+database_id = "eecd116e-2ac2-4350-9eee-a39e061d25ab"
 
 [[routes]]
 pattern = "api.dev.peakflowstat.allergyclinic.cc"
