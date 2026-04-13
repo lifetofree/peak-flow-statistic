@@ -13,11 +13,11 @@ database_name = "peakflowstat-db"
 database_id = "812f290e-51dc-433b-a2d8-4156dadd72d0"
 
 # KV namespace for rate limiting
-# Create with: npx wrangler kv:namespace create "RATE_LIMIT"
+# Create with: npx wrangler kv namespace create "RATE_LIMIT"
 # Then replace the id below with the returned value
 [[kv_namespaces]]
 binding = "RATE_LIMIT"
-id = "YOUR_RATE_LIMIT_KV_ID"
+id = "8bb561a78e63471ba5d89daa37ba8fb5"
 
 [[routes]]
 pattern = "api.peakflowstat.allergyclinic.cc"
