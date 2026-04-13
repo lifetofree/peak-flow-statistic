@@ -1,3 +1,15 @@
+/**
+ * User-Facing API Routes.
+ * 
+ * Patient-facing endpoints: view entries, create new entries, export CSV.
+ * All routes require valid short_token via validateShortLink middleware.
+ * 
+ * Routes:
+ * - GET  /api/u/:token        - Get user profile
+ * - GET  /api/u/:token/entries - List entries with pagination and date filtering
+ * - POST /api/u/:token/entries - Create new peak flow entry
+ * - GET  /api/u/:token/export  - Export entries as CSV
+ */
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
@@ -16,6 +28,9 @@ type Variables = {
 
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
 
+/**
+ * Validates short_token and loads user. Returns 404 if invalid or soft-deleted.
+ */
 const validateShortLink = async (c: any, next: any) => {
   const { token } = c.req.param();
   const db = new DatabaseClient(c.env);

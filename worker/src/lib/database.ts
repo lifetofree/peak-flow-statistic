@@ -1,6 +1,28 @@
+/**
+ * Database Client for D1 SQLite Database.
+ * 
+ * Provides type-safe CRUD operations with SQL injection prevention via allowlists.
+ * All table and column names are validated against allowlists before execution.
+ * 
+ * Supported filter operators:
+ * - Exact match: `{ column: value }`
+ * - NULL check: `{ column: null }`
+ * - Range operators: `{ column: { $gte: value, $lte: value } }`
+ * - IN clause: `{ column: [val1, val2] }`
+ * - LIKE pattern: `{ column: '%pattern%' }`
+ */
 import type { Env } from '../index';
 
+/**
+ * Allowlisted tables - prevents SQL injection via table names.
+ * Only these tables can be queried.
+ */
 const ALLOWED_TABLES = ['users', 'entries', 'audit_logs'] as const;
+
+/**
+ * Allowlisted columns - prevents SQL injection via column names.
+ * All columns in all tables that can be used in queries.
+ */
 const ALLOWED_COLUMNS = [
   'id', 'first_name', 'last_name', 'nickname', 'short_token', 'short_code',
   'click_count', 'personal_best', 'admin_note', 'deleted_at',
@@ -9,6 +31,10 @@ const ALLOWED_COLUMNS = [
   'medication_timing', 'period', 'note',
   'admin_id', 'target_id', 'target_model', 'action', 'diff', 'timestamp',
 ] as const;
+
+/**
+ * Allowlisted order columns - prevents SQL injection via ORDER BY clause.
+ */
 const ALLOWED_ORDER_COLUMNS = [
   'id', 'first_name', 'last_name', 'nickname', 'created_at', 'updated_at',
   'date', 'peak_flow', 'spo2', 'medication_timing', 'period', 'timestamp',

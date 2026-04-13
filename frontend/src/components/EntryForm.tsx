@@ -1,3 +1,18 @@
+/**
+ * EntryForm - Simplified form for recording peak flow measurements.
+ * 
+ * Collects: 3 peak flow readings, SpO2, medication timing (before/after),
+ * morning/evening period, and optional rich text notes.
+ * 
+ * Validation rules:
+ * - Date cannot be in the future
+ * - Peak flow readings: 50-900 L/min
+ * - SpO2: 70-100%
+ * 
+ * Uses toggle buttons (gray background) for period and medication timing.
+ * SpO2 and medication timing are on the same row for mobile layout.
+ * Rich text notes use RichTextEditor with DOMPurify sanitization on render.
+ */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toISODateString } from '../utils/date';

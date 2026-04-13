@@ -1,3 +1,15 @@
+/**
+ * Entry grouping utilities for list view display.
+ * 
+ * Groups entries by date, then by period (morning/evening) and
+ * medication timing (before/after), creating a 4-slot grid per day:
+ * 
+ * [morning-before] [morning-after]
+ * [evening-before] [evening-after]
+ * 
+ * Used by both UserDashboard (list view) and AdminUserDetail.
+ * Entry list view uses 80 entries per page (20 days × 4 slots).
+ */
 export interface Entry {
   _id: string;
   date: string;
@@ -18,6 +30,12 @@ export interface GroupedEntries {
   };
 }
 
+/**
+ * Groups entries by date, then by period-medication combination.
+ * If multiple entries exist for the same slot, only the most recent (by createdAt) is kept.
+ * @param entries - Flat array of entry objects
+ * @returns Nested object keyed by ISO date, each containing 4 slots
+ */
 export function groupEntriesByDate(entries: Entry[]): GroupedEntries {
   const grouped: GroupedEntries = {};
   
@@ -44,6 +62,11 @@ export function groupEntriesByDate(entries: Entry[]): GroupedEntries {
   return grouped;
 }
 
+/**
+ * Converts grouped object format to array format grouped by date.
+ * @param grouped - Output of groupEntriesByDate()
+ * @returns Object keyed by date, each containing array of non-null entries
+ */
 export function convertGroupedToArray(grouped: GroupedEntries): Record<string, Entry[]> {
   const entriesByDate: Record<string, Entry[]> = {};
   
@@ -59,6 +82,11 @@ export function convertGroupedToArray(grouped: GroupedEntries): Record<string, E
   return entriesByDate;
 }
 
+/**
+ * Returns sorted date keys in descending order (most recent first).
+ * @param entriesByDate - Output of convertGroupedToArray()
+ * @returns Array of ISO date strings, sorted newest to oldest
+ */
 export function getSortedDates(entriesByDate: Record<string, Entry[]>): string[] {
   return Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 }
