@@ -93,7 +93,8 @@
     "dateFilter": "กรองตามวันที่",
     "fromDate": "จากวันที่",
     "toDate": "ถึงวันที่",
-    "clearFilter": "ล้างตัวกรอง"
+    "clearFilter": "ล้างตัวกรอง",
+    "devMode": "โหมดพัฒนา (Dev Mode)"
   },
   "chart": {
     "peakFlowTrend": "แนวโน้มค่าแรงเป่าลม",

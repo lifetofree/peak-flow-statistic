@@ -4,12 +4,7 @@ Prioritized list of suggested features and improvements.
 
 ## High Priority
 
-### B-01: Admin Authentication
-- **Why:** All admin endpoints are publicly accessible. Anyone can create/edit/delete users and entries. Critical for a medical application handling patient data.
-- **Scope:** JWT-based auth. Login page → middleware on all `/api/admin/*` routes. Token stored in localStorage. Admin credentials in D1 or env vars.
-- **Depends on:** Nothing (foundational)
-
-### B-02: Rate Limiting on Worker Routes
+### B-01: Rate Limiting on Worker Routes
 - **Why:** No rate limiting on Cloudflare Worker. Patient-facing routes (`/api/u/:token/*`) and admin routes are unlimited. Vulnerable to abuse.
 - **Scope:** Implement per-IP rate limiting using Cloudflare's built-in features or custom middleware. 100 req/15min for patient routes, 300 req/15min for admin.
 
