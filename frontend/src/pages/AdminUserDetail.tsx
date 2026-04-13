@@ -17,10 +17,9 @@ export default function AdminUserDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [entryPage, setEntryPage] = useState(1);
+  const [dayPage, setDayPage] = useState(1);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
   const daysPerPage = 20;
-  const entriesPerPage = daysPerPage * 4;
 
   const userQuery = useQuery({
     queryKey: ['adminUser', id],
@@ -29,8 +28,8 @@ export default function AdminUserDetail() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['adminEntries', id, entryPage],
-    queryFn: () => fetchAdminEntries(entryPage, id, entriesPerPage),
+    queryKey: ['adminEntries', id],
+    queryFn: () => fetchAdminEntries(1, id, 0),
     enabled: Boolean(id),
   });
 
@@ -91,7 +90,18 @@ export default function AdminUserDetail() {
 
   const allEntries = entriesQuery.data?.entries ?? [];
   const groupedEntries = groupEntriesByDate(allEntries);
-  const entriesByDate = convertGroupedToArray(groupedEntries);
+  const sortedDates = Object.keys(groupedEntries).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const totalDays = sortedDates.length;
+  const totalPages = Math.ceil(totalDays / daysPerPage);
+  
+  const startIndex = (dayPage - 1) * daysPerPage;
+  const endIndex = startIndex + daysPerPage;
+  const visibleDates = sortedDates.slice(startIndex, endIndex);
+  const visibleEntriesByDate: Record<string, typeof allEntries> = {};
+  visibleDates.forEach(date => {
+    visibleEntriesByDate[date] = groupedEntries[date];
+  });
+  const entriesByDate = convertGroupedToArray(visibleEntriesByDate);
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
@@ -133,10 +143,10 @@ export default function AdminUserDetail() {
       ) : (
         <UserEntriesTable
           entriesByDate={entriesByDate}
-          total={entriesQuery.data?.total ?? 0}
-          entryPage={entryPage}
-          entriesPerPage={entriesPerPage}
-          onPageChange={setEntryPage}
+          totalDays={totalDays}
+          dayPage={dayPage}
+          daysPerPage={daysPerPage}
+          onPageChange={setDayPage}
           onViewNote={(note, date) => setViewingNote({ note, date })}
         />
       )}

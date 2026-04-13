@@ -18,22 +18,22 @@ interface Entry {
 
 interface EntriesCardViewProps {
   entries: Entry[];
-  entryPage: number;
-  cardsPerPage: number;
-  totalEntries: number;
+  dayPage: number;
+  daysPerPage: number;
+  totalDays: number;
   onPageChange: (page: number) => void;
 }
 
 export default function EntriesCardView({ 
   entries, 
-  entryPage, 
-  cardsPerPage, 
-  totalEntries,
+  dayPage, 
+  daysPerPage, 
+  totalDays,
   onPageChange 
 }: EntriesCardViewProps) {
   const { t } = useTranslation();
 
-  const totalPages = Math.ceil(totalEntries / cardsPerPage);
+  const totalPages = Math.ceil(totalDays / daysPerPage);
 
   return (
     <div className="space-y-3">
@@ -51,18 +51,18 @@ export default function EntriesCardView({
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 mt-4">
           <button
-            onClick={() => onPageChange(Math.max(1, entryPage - 1))}
-            disabled={entryPage === 1}
+            onClick={() => onPageChange(Math.max(1, dayPage - 1))}
+            disabled={dayPage === 1}
             className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
           >
             <ChevronLeft size={20} />
           </button>
           <span className="text-sm font-medium text-gray-600">
-            {entryPage} / {totalPages}
+            {dayPage} / {totalPages}
           </span>
           <button
-            onClick={() => onPageChange(Math.min(totalPages, entryPage + 1))}
-            disabled={entryPage === totalPages}
+            onClick={() => onPageChange(Math.min(totalPages, dayPage + 1))}
+            disabled={dayPage === totalPages}
             className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
           >
             <ChevronLeft size={20} className="rotate-180" />

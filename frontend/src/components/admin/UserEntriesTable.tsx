@@ -14,18 +14,18 @@ interface Entry {
 
 interface UserEntriesTableProps {
   entriesByDate: Record<string, Entry[]>;
-  total: number;
-  entryPage: number;
-  entriesPerPage: number;
+  totalDays: number;
+  dayPage: number;
+  daysPerPage: number;
   onPageChange: (page: number) => void;
   onViewNote: (note: string, date: string) => void;
 }
 
 export default function UserEntriesTable({ 
   entriesByDate, 
-  total, 
-  entryPage, 
-  entriesPerPage, 
+  totalDays, 
+  dayPage, 
+  daysPerPage, 
   onPageChange,
   onViewNote 
 }: UserEntriesTableProps) {
@@ -61,9 +61,9 @@ export default function UserEntriesTable({
     );
   };
 
-  const totalPages = Math.ceil(total / entriesPerPage);
+  const totalPages = Math.ceil(totalDays / daysPerPage);
 
-  if (total === 0) {
+  if (totalDays === 0) {
     return (
       <div className="bg-white rounded-xl p-6 shadow-sm border">
         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
@@ -166,18 +166,18 @@ export default function UserEntriesTable({
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 mt-4">
           <button
-            onClick={() => onPageChange(Math.max(1, entryPage - 1))}
-            disabled={entryPage === 1}
+            onClick={() => onPageChange(Math.max(1, dayPage - 1))}
+            disabled={dayPage === 1}
             className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
           >
             <ChevronLeft size={20} />
           </button>
           <span className="text-sm font-medium text-gray-600">
-            {entryPage} / {totalPages}
+            {dayPage} / {totalPages}
           </span>
           <button
-            onClick={() => onPageChange(Math.min(totalPages, entryPage + 1))}
-            disabled={entryPage === totalPages}
+            onClick={() => onPageChange(Math.min(totalPages, dayPage + 1))}
+            disabled={dayPage === totalPages}
             className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
           >
             <ChevronLeft size={20} className="rotate-180" />

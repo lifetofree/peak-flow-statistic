@@ -15,18 +15,18 @@ interface Entry {
 
 interface EntriesListViewProps {
   entriesByDate: Record<string, Entry[]>;
-  entryPage: number;
-  entriesPerPage: number;
-  totalEntries: number;
+  dayPage: number;
+  daysPerPage: number;
+  totalDays: number;
   onPageChange: (page: number) => void;
   onViewNote: (note: string, date: string) => void;
 }
 
 export default function EntriesListView({ 
   entriesByDate, 
-  entryPage, 
-  entriesPerPage, 
-  totalEntries,
+  dayPage, 
+  daysPerPage, 
+  totalDays,
   onPageChange,
   onViewNote 
 }: EntriesListViewProps) {
@@ -63,7 +63,7 @@ export default function EntriesListView({
   };
 
   const sortedDates = Object.keys(entriesByDate).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-  const totalPages = Math.ceil(totalEntries / entriesPerPage);
+  const totalPages = Math.ceil(totalDays / daysPerPage);
 
   return (
     <div className="space-y-3">
@@ -142,18 +142,18 @@ export default function EntriesListView({
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 mt-4">
           <button
-            onClick={() => onPageChange(Math.max(1, entryPage - 1))}
-            disabled={entryPage === 1}
+            onClick={() => onPageChange(Math.max(1, dayPage - 1))}
+            disabled={dayPage === 1}
             className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
           >
             <ChevronLeft size={20} />
           </button>
           <span className="text-sm font-medium text-gray-600">
-            {entryPage} / {totalPages}
+            {dayPage} / {totalPages}
           </span>
           <button
-            onClick={() => onPageChange(Math.min(totalPages, entryPage + 1))}
-            disabled={entryPage === totalPages}
+            onClick={() => onPageChange(Math.min(totalPages, dayPage + 1))}
+            disabled={dayPage === totalPages}
             className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50"
           >
             <ChevronLeft size={20} className="rotate-180" />
