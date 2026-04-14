@@ -25,21 +25,17 @@ export default function DateFilter({
         <Calendar size={18} className="text-blue-600" />
         <span className="font-semibold text-gray-700">{t('common.dateFilter')}</span>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">{t('common.fromDate')}</label>
-          <BuddhistDatePicker
-            value={fromDate}
-            onChange={onFromDateChange}
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">{t('common.toDate')}</label>
-          <BuddhistDatePicker
-            value={toDate}
-            onChange={onToDateChange}
-          />
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <BuddhistDatePicker
+          value={fromDate}
+          onChange={onFromDateChange}
+          placeholder={t('common.fromDatePlaceholder')}
+        />
+        <BuddhistDatePicker
+          value={toDate}
+          onChange={onToDateChange}
+          placeholder={t('common.toDatePlaceholder')}
+        />
       </div>
       {(fromDate || toDate) && (
         <button
