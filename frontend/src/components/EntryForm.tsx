@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { toISODateString } from '../utils/date';
 import { PEAK_FLOW_MIN, PEAK_FLOW_MAX, SPO2_MIN, SPO2_MAX } from '../constants/validation';
 import RichTextEditor from './RichTextEditor';
+import BuddhistDatePicker from './BuddhistDatePicker';
 
 interface EntryFormProps {
   onSubmit: (data: {
@@ -103,12 +104,10 @@ export default function EntryForm({ onSubmit, isLoading }: EntryFormProps) {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             {t('entry.date')}
           </label>
-          <input
-            type="date"
+          <BuddhistDatePicker
             value={date}
-            max={today}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            onChange={setDate}
+            maxDate={today}
           />
         </div>
 
