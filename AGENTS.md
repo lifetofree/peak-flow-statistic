@@ -119,7 +119,23 @@ PeakFlowStat/
 │       │   └── peakFlow.ts          # Peak flow parsing utilities
 │       ├── middleware/
 │       │   └── rateLimit.ts         # Rate limiting middleware (Cloudflare KV)
-│       └── routes/
+│       ├── routes/
+│       │   ├── admin/
+│       │   │   ├── audit.ts         # GET /api/admin/audit
+│       │   │   ├── entries.ts       # GET/PATCH/DELETE /api/admin/entries[/:id]
+│       │   │   ├── index.ts         # Aggregates users + entries + audit routes
+│       │   │   ├── types.ts         # DatabaseRecord, UserRecord, EntryRecord, AuditLogRecord, Formatted* types
+│       │   │   └── users.ts         # CRUD /api/admin/users[/:id[/note|/export]]
+│       │   ├── admin.ts             # Re-exports admin/index (legacy shim)
+│       │   ├── health.ts            # GET /api/health
+│       │   ├── jwt.ts               # JWT utilities (reserved, not enforced)
+│       │   ├── redirect.ts          # GET /s/:code -> 302
+│       │   ├── user.ts              # GET/POST /api/u/:token[/entries|/export]
+│       │   └── zone.ts              # calculateZone(), getBestReading()
+│       └── services/
+│           ├── entryService.ts      # Entry CRUD business logic
+│           ├── userService.ts       # User CRUD business logic
+│           └── exportService.ts     # CSV generation utilities
 │           ├── admin/
 │           │   ├── audit.ts         # GET /api/admin/audit
 │           │   ├── entries.ts       # GET/PATCH/DELETE /api/admin/entries[/:id]
@@ -321,11 +337,12 @@ Calculated from `max(peakFlowReadings)` vs user's `personalBest`. Logic in `fron
 
 | Zone | Range | Colour |
 |------|-------|--------|
-| Green | >= 80% of personal best | `#22c55e` |
-| Yellow | 50–79% | `#eab308` |
-| Red | < 50% | `#ef4444` |
+| Green | >= 90% of personal best | `#22c55e` |
+| Orange | 80-89% | `#f97316` |
+| Yellow | 60-79% | `#eab308` |
+| Red | < 60% | `#ef4444` |
 
-- Zone data is **returned by the API** but **not displayed** in the current UI (`ZoneBadge` exists and is unused).
+- Zone data is **returned by the API** and **displayed** in the UI with color-coded values and ZoneBadge components.
 - If `personalBest` is `null`, zone is `null` and a notice is shown to contact their doctor.
 
 ---
