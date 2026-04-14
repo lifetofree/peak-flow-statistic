@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { parsePeakFlowReadings } from '../lib/peakFlow';
 
 const createUserSchema = z.object({
   firstName: z.string().min(1),
@@ -558,9 +559,7 @@ describe('User Flow', () => {
 
       const app = new Hono();
       app.get('/u/:token/entries', async (c) => {
-        let readings: number[] = [];
-        try { readings = JSON.parse(mockEntry.peak_flow_readings); } catch { readings = [mockEntry.peak_flow]; }
-        const best = Math.max(...readings);
+        const { readings, best } = parsePeakFlowReadings(mockEntry.peak_flow_readings, mockEntry.peak_flow);
         const formatted = [{ entry: { _id: mockEntry.id, date: mockEntry.date, peakFlowReadings: readings }, zone: { zone: best >= 400 ? 'green' : 'yellow', percentage: 86 } }];
         return c.json({ entries: formatted, total: 1, page: 1, pageSize: 20 });
       });
@@ -669,9 +668,7 @@ describe('User Flow', () => {
       app.get('/u/:token/export', async (c) => {
         let csv = 'Date,Period,Best Peak Flow,SpO2,Medication,Note\n';
         for (const entry of entries) {
-          let readings: number[] = [];
-          try { readings = JSON.parse(entry.peak_flow_readings); } catch { readings = [entry.peak_flow]; }
-          const best = Math.max(...readings);
+          const { best } = parsePeakFlowReadings(entry.peak_flow_readings, entry.peak_flow);
           csv += `"${entry.date}","${entry.period}","${best}","${entry.spo2}","${entry.medication_timing}","${entry.note}"\n`;
         }
         c.header('Content-Type', 'text/csv');
@@ -709,9 +706,7 @@ describe('User Flow', () => {
         
         let csv = 'Date,Period,Best Peak Flow,SpO2,Medication,Note\n';
         for (const entry of filteredEntries) {
-          let readings: number[] = [];
-          try { readings = JSON.parse(entry.peak_flow_readings); } catch { readings = [entry.peak_flow]; }
-          const best = Math.max(...readings);
+          const { best } = parsePeakFlowReadings(entry.peak_flow_readings, entry.peak_flow);
           csv += `"${entry.date}","${entry.period}","${best}","${entry.spo2}","${entry.medication_timing}","${entry.note}"\n`;
         }
         c.header('Content-Type', 'text/csv');

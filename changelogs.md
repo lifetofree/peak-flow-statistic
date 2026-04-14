@@ -1,18 +1,18 @@
 ## Changelog
 
 ## Current Version
-v1.10.0 (2026-04-13)
+v1.11.0 (2026-04-14)
 
 ## Version History
 
 | Date | Version | Change |
 |------|---------|--------|
-| 2026-04-13 | v1.10.0 | Updated AGENTS.md with comprehensive project documentation including rate limiting implementation, new test files (api-flows.test.ts, rate-limit.test.ts), DevModeBanner component, and updated file structure. Added references to RATE_LIMITING.md and TEST_PROTOCOL.md documentation. Updated Security section with rate limiting details. Updated Testing section with comprehensive test suite information. Added missing files to file structure (audit.ts, peakFlow.ts, pagination.ts). |
+| 2026-04-14 | v1.11.0 | Replaced ThaiDatePicker with `<input type="date">` in DateFilter.tsx and EntryForm.tsx. Changed date display from Buddhist Era (2569) to ISO year (2026) format dd/mm/yyyy. Fixed timezone issue in formatThaiDate by parsing ISO string directly. Updated tests to reflect ISO year format. |
 | 2026-04-14 | v53 | Implemented peak flow zone color display (B-03). EntryCard now shows ZoneBadge and color-coded peak flow values. EntriesListView and UserEntriesTable (admin) now display zone-colored peak flow readings. Fixed hardcoded English strings in table headers to use i18n keys. Updated entryGrouping.ts to preserve zone data through date grouping. |
 | 2026-04-14 | v52 | Implemented rate limiting on all API routes using Cloudflare KV. Patient routes (/api/u/:token/*) limited to 100 requests/15min per IP. Admin routes limited to 300 requests/15min per IP. Returns 429 with Retry-After header when limit exceeded. Added rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset) to all API responses. Created comprehensive unit tests for rate limiting middleware. Updated ENVIRONMENTS.md with KV namespace setup instructions. |
 | 2026-04-12 | v50 | Fixed admin user detail crash: entryGrouping.ts now guards against undefined `date` field. Added `.github/workflows/deploy.yml` for CI/CD. |
 | 2026-04-12 | v49 | Fixed DatabaseClient `updateOne` binding order — SET values must come before WHERE values. Fixed `count()` to use shared `buildWhereClause` for consistent filter handling including $gte/$lte and IN clauses. |
-| 2026-04-12 | v48 | Added comprehensive test suites: 32 backend tests (zone calculation, DatabaseClient validation, Zod schemas) and 24 frontend tests (Thai B.E. date formatting, zone calculation, TypeScript type validation). All tests passing. |
+| 2026-04-12 | v48 | Added comprehensive test suites: 32 backend tests (zone calculation, DatabaseClient validation, Zod schemas) and 24 frontend tests (date formatting, zone calculation, TypeScript type validation). All tests passing. |
 | 2026-04-12 | v47 | Fixed date timezone issue in EntryForm: use raw date string instead of `new Date(date).toISOString()` which caused off-by-one day due to timezone conversion. Fixed CSV filename header injection by sanitizing user names. |
 | 2026-04-12 | v46 | Security and performance fixes. Rewrote DatabaseClient with full column name validation, $gte/$lte range query support, and shared buildWhereClause helper. Fixed N+1 query in admin users list using batch entry lookup. Fixed date filtering in user entries and admin entries to use SQL-level filtering instead of client-side JS filtering. Added proper backend pagination with date filters. Removed stale .js files from worker/src. Removed console.log from AdminDashboard. Fixed CreateEntryInput type to include period field. Removed any types from FormattedEntry and FormattedAuditLog. |
 | 2026-04-12 | v45 | Updated date/time display across the system. All events (create, edit, delete) now store full datetime in database (`created_at`, `updated_at`, `timestamp`). All UI displays now show only date in Thai Buddhist Era format (e.g., "12/04/2569"). Updated AdminAuditLog, NoteModal, and UserNoteModal to use formatThaiDate instead of formatThaiDateTime. |
@@ -44,6 +44,11 @@ v1.10.0 (2026-04-13)
 
 ## Summary of Major Features
 
+### v1.11.0 (2026-04-14)
+- Replaced ThaiDatePicker with native HTML5 date input
+- Date display now uses ISO year (2026) in dd/mm/yyyy format
+- Fixed timezone parsing issue in date formatting
+
 ### v1.10.0 (2026-04-13)
 - Documentation updates to reflect current project state
 - Added missing files to AGENTS.md file structure
@@ -74,7 +79,7 @@ v1.10.0 (2026-04-13)
 
 ### v45 (2026-04-12)
 - Date/time display standardization
-- Thai Buddhist Era format throughout UI
+- Date format dd/mm/yyyy with ISO year
 
 ### v44 (2026-04-12)
 - Rich text editor implementation

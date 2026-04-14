@@ -2,20 +2,21 @@
 
 ## Project Overview
 
-PeakFlowStat is a **mobile-first** web application for asthma patients to track peak flow measurements. Users access their personal dashboard via a unique short link — no login required. The interface is in Thai (Buddhist Era dates). Administrative features are accessible at `/admin` (no authentication — open-access by design) to manage users and audit all data changes.
+PeakFlowStat is a **mobile-first** web application for asthma patients to track peak flow measurements. Users access their personal dashboard via a unique short link — no login required. Administrative features are accessible at `/admin` (no authentication — open-access by design) to manage users and audit all data changes.
 
 ### Key Features
 
-- **Patient Dashboard:** Shows user name and recent entries. Supports **card view** (10 entries/page) and **list view** (80 entries/page). Charts and zone badges are NOT rendered — entry cards show raw readings only.
+- **Patient Dashboard:** Shows user name and recent entries. Supports **card view** (10 entries/page) and **list view** (80 entries/page). Zone badges are displayed with color-coded peak flow values.
 - **Date Filtering:** User dashboard and admin user detail support `from`/`to` date range filtering. CSV export respects date filters.
 - **Easy Entry Form:** Records 3 peak flow readings, SpO₂, medication timing (`before`/`after`), and period (`morning`/`evening`). Toggle buttons with gray background. SpO₂ and medication timing are on the same row (mobile-optimised).
 - **Rich Text Notes:** Patient entry notes and admin notes use a WYSIWYG editor (`RichTextEditor.tsx`, powered by `react-quill`). HTML content sanitised with DOMPurify before rendering.
 - **Admin Panel:** Directly accessible at `/admin`. Create/edit users, set personal best, edit/delete entries. Create user form includes a cancel button.
 - **Data Export:** CSV export per user (admin side) and per user token (patient side). Optional date filter.
-- **Audit Logging:** All CREATE/UPDATE/DELETE operations on `User` and `Entry` write an append-only `AuditLog` record inline in the route handler.
+- **Audit Logging:** All CREATE/UPDATE/DELETE operations on `User` and `Entry` write an append-only `AuditLog` record.
 - **Short Links:** Each user has an 8-char cryptographically random `shortCode` (4 random bytes → hex via `crypto.getRandomValues`). `/s/:code` on the worker performs a 302 redirect to the absolute frontend URL and increments `clickCount`. Click counts stored in DB but **not displayed** in the UI.
 - **Share Link UI:** Admin can view/copy the short URL and see a QR code in the user detail view. Copy button per row in the user list. Native share button removed.
 - **Rate Limiting:** IP-based rate limiting on all API routes using Cloudflare KV. Patient routes limited to 100 requests/15min, admin routes limited to 300 requests/15min. Returns 429 with Retry-After header when limit exceeded.
+- **Service Layer:** Business logic extracted from route handlers into dedicated service modules (`entryService.ts`, `userService.ts`, `exportService.ts`) for improved maintainability and testability.
 - **Localisation:** Thai only (`th.json`). All UI strings via `useTranslation`. No raw Thai text in source files.
 
 ### Technology Stack
@@ -91,7 +92,7 @@ PeakFlowStat/
 │       │   ├── index.ts
 │       │   └── rehype-sanitize.d.ts
 │       ├── utils/
-│       │   ├── date.ts              # Thai B.E. date formatting
+│       │   ├── date.ts              # Date formatting (dd/mm/yyyy with ISO year)
 │       │   ├── entryGrouping.ts     # Groups entries by date x period x medication
 │       │   └── zone.ts              # Zone calculation (mirrors worker/src/routes/zone.ts)
 │       └── App.tsx
@@ -383,7 +384,7 @@ Thin wrapper around D1 with SQL-injection prevention via allowlists.
 - **Naming:** `camelCase` variables/functions, `PascalCase` components/types, `UPPER_SNAKE_CASE` constants.
 - **Styling:** Tailwind CSS, mobile-first (`sm:` -> `md:` -> `lg:`). Font: `"Sarabun"` from Google Fonts.
 - **Localisation:** All UI strings in `frontend/src/i18n/th.json`. No raw Thai text in `.tsx`/`.ts`.
-- **Date display:** Thai Buddhist Era (`DD/MM/YYYY+543`) via `formatThaiDate()` in `utils/date.ts`. Never inline date logic.
+- **Date display:** `DD/MM/YYYY` format with ISO year via `formatThaiDate()` in `utils/date.ts`. Never inline date logic.
 - **Date storage:** ISO 8601 strings in all DB columns (`created_at`, `updated_at`, `timestamp`).
 - **Data fetching:** TanStack Query only. No `useEffect` + `fetch` for loading data.
 - **Error shape (API):** `{ error: string, code?: string }` with standard HTTP status codes.
@@ -403,7 +404,7 @@ Thin wrapper around D1 with SQL-injection prevention via allowlists.
   - `database-validation.test.ts` — DatabaseClient allowlist enforcement
   - `schemas.test.ts` — Zod schema validation
   - `zone.test.ts` — Zone calculation
-- **Frontend tests** (`frontend/src/__tests__/`): Thai B.E. date formatting, zone calculation, type guards.
+- **Frontend tests** (`frontend/src/__tests__/`): Date formatting (ISO year in dd/mm/yyyy), zone calculation, type guards.
 - **Test Protocol:** See `worker/TEST_PROTOCOL.md` for comprehensive test documentation.
 - Run: `npm test` from `frontend/` or `worker/`.
 

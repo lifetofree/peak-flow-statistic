@@ -8,6 +8,7 @@ import { writeUpdateAudit, writeDeleteAudit } from '../../lib/audit';
 import { DEFAULT_PAGE_SIZE } from '../../constants/pagination';
 import type { Env } from '../../index';
 import type { EntryRecord, UserRecord, FormattedEntry } from './types';
+import { updateEntry, deleteEntry, type UpdateEntryData } from '../../services/entryService';
 
 const entriesApp = new Hono<{ Bindings: Env }>();
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
@@ -89,46 +90,36 @@ entriesApp.get('/admin/entries', async (c) => {
 entriesApp.patch('/admin/entries/:id', zValidator('json', updateEntrySchema), async (c) => {
   const db = new DatabaseClient(c.env);
   const entryId = c.req.param('id');
-  const data = c.req.valid('json');
+  const data = c.req.valid('json') as UpdateEntryData;
   const now = new Date().toISOString();
 
   const entry = await db.findOne<EntryRecord>('entries', { id: entryId });
   if (!entry) return c.json({ error: 'Not found' }, 404);
 
   const before = { ...entry };
-  const updates: Record<string, any> = { updated_at: now };
+  const formatted = await updateEntry(db, entryId, data, now);
 
-  if (data.date !== undefined) updates.date = data.date;
-  if (data.peakFlowReadings !== undefined) updates.peak_flow_readings = JSON.stringify(data.peakFlowReadings);
-  if (data.spO2 !== undefined) updates.spo2 = data.spO2;
-  if (data.medicationTiming !== undefined) updates.medication_timing = data.medicationTiming;
-  if (data.period !== undefined) updates.period = data.period;
-  if (data.note !== undefined) updates.note = data.note;
+  if (formatted) {
+    await writeUpdateAudit(db, entryId, 'Entry', before, { ...formatted });
+  }
 
-  await db.updateOne('entries', { id: entryId }, updates);
-
-  await writeUpdateAudit(db, entryId, 'Entry', before, { ...entry, ...updates });
-
-  const updated = await db.findOne<EntryRecord>('entries', { id: entryId });
-  const user = updated ? await db.findOne<UserRecord>('users', { id: updated.user_id }) : null;
-  const formattedUpdated = updated ? formatEntryWithZone(updated, user) : null;
-
-  return c.json(formattedUpdated);
+  return c.json(formatted);
 });
 
 entriesApp.delete('/admin/entries/:id', async (c) => {
   const db = new DatabaseClient(c.env);
   const entryId = c.req.param('id');
-  const now = new Date().toISOString();
 
   const entry = await db.findOne<EntryRecord>('entries', { id: entryId });
   if (!entry) return c.json({ error: 'Not found' }, 404);
 
-  await db.deleteOne('entries', { id: entryId });
+  const success = await deleteEntry(db, entryId);
 
-  await writeDeleteAudit(db, entryId, 'Entry', entry as unknown as Record<string, unknown>);
+  if (success) {
+    await writeDeleteAudit(db, entryId, 'Entry', entry as unknown as Record<string, unknown>);
+  }
 
-  return c.json({ success: true });
+  return c.json({ success });
 });
 
 export default entriesApp;

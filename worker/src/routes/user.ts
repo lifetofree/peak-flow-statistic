@@ -1,9 +1,9 @@
 /**
  * User-Facing API Routes.
- * 
+ *
  * Patient-facing endpoints: view entries, create new entries, export CSV.
  * All routes require valid short_token via validateShortLink middleware.
- * 
+ *
  * Routes:
  * - GET  /api/u/:token        - Get user profile
  * - GET  /api/u/:token/entries - List entries with pagination and date filtering
@@ -14,11 +14,11 @@ import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { DatabaseClient } from '../lib/database';
-import { calculateZone } from './zone';
 import { rateLimitPatient } from '../middleware/rateLimit';
-import { parsePeakFlowReadings } from '../lib/peakFlow';
 import type { Env } from '../index';
 import type { UserRecord } from './admin/types';
+import { getUserEntries, createUserEntry, type CreateEntryData } from '../services/entryService';
+import { generateCsv, getSafeFileName } from '../services/exportService';
 
 type FilterValue = string | number | null | (string | number)[] | { $gte?: string | number; $lte?: string | number };
 type Filter = Record<string, FilterValue>;
@@ -69,48 +69,9 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
   const from = c.req.query('from');
   const to = c.req.query('to');
 
-  const filter: Filter = { user_id: userId };
-  const dateFilter: Record<string, any> = {};
-  if (from) dateFilter.$gte = from;
-  if (to) dateFilter.$lte = to;
-  if (from || to) filter.date = dateFilter as FilterValue;
+  const result = await getUserEntries(db, { userId, page, pageSize, from, to }, user);
 
-  const offset = pageSize > 0 ? (page - 1) * pageSize : 0;
-
-  const [entries, total] = await Promise.all([
-    db.find<any>('entries', filter, {
-      orderBy: 'date', order: 'DESC',
-      limit: pageSize > 0 ? pageSize : undefined,
-      offset: pageSize > 0 ? offset : undefined,
-    }),
-    db.count('entries', filter),
-  ]);
-
-  const formattedEntries = entries.map((e: any) => {
-    const { readings: peakFlowReadings, best: bestReading } = parsePeakFlowReadings(
-      e.peak_flow_readings,
-      e.peak_flow
-    );
-    const zone = user.personal_best ? calculateZone(bestReading, user.personal_best) : null;
-
-    return {
-      entry: {
-        _id: e.id,
-        userId: e.user_id,
-        date: e.date,
-        peakFlowReadings,
-        spO2: e.spo2,
-        medicationTiming: e.medication_timing,
-        period: e.period || 'morning',
-        note: e.note || '',
-        createdAt: e.created_at,
-        updatedAt: e.updated_at,
-      },
-      zone,
-    };
-  });
-
-  return c.json({ entries: formattedEntries, total, page, pageSize });
+  return c.json(result);
 });
 
 const createEntrySchema = z.object({
@@ -125,37 +86,12 @@ const createEntrySchema = z.object({
 app.post('/u/:token/entries', validateShortLink, zValidator('json', createEntrySchema), async (c) => {
   const db = new DatabaseClient(c.env);
   const userId = c.get('userId');
-  const data = c.req.valid('json');
+  const data = c.req.valid('json') as CreateEntryData;
   const now = new Date().toISOString();
 
-  const entry = {
-    id: crypto.randomUUID(),
-    user_id: userId,
-    date: data.date,
-    peak_flow_readings: JSON.stringify(data.peakFlowReadings),
-    peak_flow: Math.max(data.peakFlowReadings[0], data.peakFlowReadings[1], data.peakFlowReadings[2]),
-    spo2: data.spO2,
-    medication_timing: data.medicationTiming,
-    period: data.period,
-    note: data.note || '',
-    created_at: now,
-    updated_at: now,
-  };
+  const result = await createUserEntry(db, userId, data, now);
 
-  await db.insertOne('entries', entry);
-
-  return c.json({
-    _id: entry.id,
-    userId: entry.user_id,
-    date: entry.date,
-    peakFlowReadings: data.peakFlowReadings,
-    spO2: entry.spo2,
-    medicationTiming: entry.medication_timing,
-    period: entry.period,
-    note: entry.note,
-    createdAt: entry.created_at,
-    updatedAt: entry.updated_at,
-  }, 201);
+  return c.json(result, 201);
 });
 
 app.get('/u/:token/export', validateShortLink, async (c) => {
@@ -173,21 +109,10 @@ app.get('/u/:token/export', validateShortLink, async (c) => {
 
   const entries = await db.find<any>('entries', filter, { orderBy: 'date', order: 'ASC' });
 
-  let csv = 'Date,Period,Best Peak Flow,SpO2,Medication,Note\n';
-  for (const entry of entries) {
-    let peakFlowReadings: number[] = [];
-    try {
-      peakFlowReadings = JSON.parse(entry.peak_flow_readings || '[]');
-    } catch {
-      peakFlowReadings = [entry.peak_flow];
-    }
-    const bestReading = peakFlowReadings.length > 0 ? Math.max(...peakFlowReadings) : entry.peak_flow;
-    const note = (entry.note || '').replace(/"/g, '""');
-    csv += `"${entry.date}","${entry.period || 'morning'}","${bestReading}","${entry.spo2 || ''}","${entry.medication_timing || ''}","${note}"\n`;
-  }
+  const csv = generateCsv(entries);
 
   c.header('Content-Type', 'text/csv');
-  const safeName = `${user.first_name}-${user.last_name}`.replace(/[^a-zA-Z0-9-]/g, '_');
+  const safeName = getSafeFileName(user.first_name, user.last_name);
   c.header('Content-Disposition', `attachment; filename="${safeName}-entries.csv"`);
   return c.body(csv);
 });

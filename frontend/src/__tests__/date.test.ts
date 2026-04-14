@@ -2,29 +2,29 @@ import { describe, it, expect } from 'vitest';
 import { formatThaiDate, formatThaiDateTime, toISODateString, getDaysAgoDate } from '../utils/date';
 
 describe('formatThaiDate', () => {
-  it('formats ISO date to Thai Buddhist Era', () => {
+  it('formats ISO date to dd/mm/yyyy', () => {
     const result = formatThaiDate('2026-04-12');
-    expect(result).toBe('12/04/2569');
+    expect(result).toBe('12/04/2026');
   });
 
   it('formats date with time component', () => {
     const result = formatThaiDate('2026-04-12T08:30:00.000Z');
-    expect(result).toMatch(/^\d{2}\/04\/2569$/);
+    expect(result).toMatch(/^\d{2}\/04\/2026$/);
   });
 
   it('handles Jan 1 boundary', () => {
     const result = formatThaiDate('2026-01-01');
-    expect(result).toBe('01/01/2569');
+    expect(result).toBe('01/01/2026');
   });
 
   it('handles Dec 31', () => {
     const result = formatThaiDate('2026-12-31');
-    expect(result).toBe('31/12/2569');
+    expect(result).toBe('31/12/2026');
   });
 
-  it('adds 543 to year', () => {
+  it('preserves year from ISO', () => {
     const result = formatThaiDate('2000-06-15');
-    expect(result).toBe('15/06/2543');
+    expect(result).toBe('15/06/2000');
   });
 });
 
@@ -32,7 +32,7 @@ describe('formatThaiDateTime', () => {
   it('includes time in output', () => {
     const result = formatThaiDateTime('2026-04-12T14:30:00');
     expect(result).toContain('14:30');
-    expect(result).toContain('12/04/2569');
+    expect(result).toContain('12/04/2026');
   });
 });
 
