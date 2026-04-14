@@ -1,32 +1,14 @@
 # PeakFlowStat — Issues
 
-## Current Status (2026-04-13)
+## Current Status (2026-04-14)
 
-All previously tracked issues from v15 (2026-04-07) have been resolved. The following issues are identified based on the comprehensive code review and current project state.
+All previously tracked issues from v15 (2026-04-07) have been resolved. The N+1 query issue in user list and the business logic in route handlers have been fixed. The following issues are identified based on the comprehensive code review and current project state.
 
 ## Active Issues
 
-### 🔴 HIGH PRIORITY
-
-#### Issue #1: Business Logic in Route Handlers
-- **Status:** Known Technical Debt
-- **Location:** [`worker/src/routes/user.ts`](worker/src/routes/user.ts:58-113), [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:48-81), [`worker/src/routes/admin/entries.ts`](worker/src/routes/admin/entries.ts:55-95)
-- **Description:** Business logic is embedded directly in route handlers, violating the Single Responsibility Principle. This makes testing difficult and code harder to maintain.
-- **Impact:** Reduced code maintainability, difficult to unit test business logic
-- **Recommendation:** Extract business logic into a service layer (e.g., `worker/src/services/entryService.ts`, `worker/src/services/auditService.ts`)
-- **Priority:** High - Should be addressed before adding new features
-
-#### Issue #2: N+1 Query in User List with Last Entry Date
-- **Status:** Active
-- **Location:** [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:66-78)
-- **Description:** After fetching users, the code fetches ALL entries for those users to find the last entry date. This is inefficient.
-- **Impact:** Performance degradation with large datasets, unnecessary database queries
-- **Recommendation:** Use a subquery or window function approach to fetch only the latest entry per user
-- **Priority:** High - Affects performance with many users
-
 ### 🟡 MEDIUM PRIORITY
 
-#### Issue #3: Duplicate Peak Flow Parsing Logic
+#### Issue #2: Duplicate Peak Flow Parsing Logic
 - **Status:** Active
 - **Location:** 
   - [`worker/src/routes/user.ts`](worker/src/routes/user.ts:86-91)
@@ -37,9 +19,9 @@ All previously tracked issues from v15 (2026-04-07) have been resolved. The foll
 - **Recommendation:** Create a shared utility function in `worker/src/lib/peakFlow.ts` (already exists but not fully utilized)
 - **Priority:** Medium - Code quality issue
 
-#### Issue #4: Audit Log Writing Duplication
+#### Issue #3: Audit Log Writing Duplication
 - **Status:** Active
-- **Location:** 
+- **Location:**
   - [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:109-117, 151-159, 175-183, 200-208)
   - [`worker/src/routes/admin/entries.ts`](worker/src/routes/admin/entries.ts:118-126, 145-153)
 - **Description:** Audit log writing code is duplicated across multiple endpoints.
@@ -47,7 +29,7 @@ All previously tracked issues from v15 (2026-04-07) have been resolved. The foll
 - **Recommendation:** Create an audit service in `worker/src/lib/audit.ts` (already exists but not fully utilized)
 - **Priority:** Medium - Code quality issue
 
-#### Issue #5: No Caching for User Profile
+#### Issue #4: No Caching for User Profile
 - **Status:** Active
 - **Location:** [`worker/src/routes/user.ts`](worker/src/routes/user.ts:46-56)
 - **Description:** User profile is fetched on every request without caching.
@@ -55,7 +37,7 @@ All previously tracked issues from v15 (2026-04-07) have been resolved. The foll
 - **Recommendation:** Implement caching using Cloudflare Workers KV for user profiles
 - **Priority:** Medium - Performance optimization
 
-#### Issue #6: No Input Sanitization for Notes on Backend
+#### Issue #5: No Input Sanitization for Notes on Backend
 - **Status:** Partially Addressed
 - **Location:** [`worker/src/routes/user.ts`](worker/src/routes/user.ts:139), [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:101)
 - **Description:** While the frontend uses DOMPurify, the backend doesn't sanitize HTML content before storing it. This could lead to stored XSS if the frontend sanitization is bypassed.
@@ -65,7 +47,7 @@ All previously tracked issues from v15 (2026-04-07) have been resolved. The foll
 
 ### 🟢 LOW PRIORITY
 
-#### Issue #7: CSV Generation in Memory
+#### Issue #6: CSV Generation in Memory
 - **Status:** Active
 - **Location:** [`worker/src/routes/user.ts`](worker/src/routes/user.ts:160-184), [`worker/src/routes/admin/users.ts`](worker/src/routes/admin/users.ts:213-245)
 - **Description:** CSV is built entirely in memory, which could be problematic for large datasets.
@@ -77,6 +59,8 @@ All previously tracked issues from v15 (2026-04-07) have been resolved. The foll
 
 | Date | Issue | Resolution |
 |------|-------|------------|
+| 2026-04-14 | Business logic in route handlers | ✅ Extracted to service layer (userService.ts, entryService.ts) |
+| 2026-04-14 | N+1 query in user list with last entry date | ✅ Fixed with single GROUP BY/MAX query (v37) |
 | 2026-04-14 | No rate limiting on API routes | ✅ Implemented Cloudflare KV-based rate limiting (v52) |
 | 2026-04-14 | Peak flow zone color not displayed | ✅ Implemented zone color display (v53) |
 | 2026-04-12 | Duplicate `PAGE_SIZE` declaration | ✅ Fixed (v34) |
@@ -101,7 +85,7 @@ All previously tracked issues from v15 (2026-04-07) have been resolved. The foll
 - **Zone calculations and validation constants:** Duplicated across frontend/backend by design (no shared package)
 - **Rate limiting:** Fully implemented using Cloudflare KV (v52)
 - **Zone display:** Fully implemented with color coding (v53)
-- **Business logic in route handlers:** Acknowledged as technical debt, documented in AGENTS.md
+- **Business logic in route handlers:** Extracted to service layer (userService.ts, entryService.ts)
 - **No backend admin auth:** Intentional by design for open-access
 
 ## Design Decisions
@@ -122,10 +106,8 @@ The following are intentional design choices, not issues:
 
 ## Next Steps
 
-1. **High Priority:** Address business logic in route handlers by extracting to service layer
-2. **High Priority:** Fix N+1 query in user list with last entry date
-3. **Medium Priority:** Consolidate duplicate peak flow parsing logic
-4. **Medium Priority:** Consolidate audit log writing code
-5. **Medium Priority:** Implement caching for user profiles
-6. **Medium Priority:** Add backend HTML sanitization for notes
-7. **Low Priority:** Implement streaming for CSV exports
+1. **Medium Priority:** Consolidate duplicate peak flow parsing logic
+2. **Medium Priority:** Consolidate audit log writing code
+3. **Medium Priority:** Implement caching for user profiles
+4. **Medium Priority:** Add backend HTML sanitization for notes
+5. **Low Priority:** Implement streaming for CSV exports

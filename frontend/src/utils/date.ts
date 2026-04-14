@@ -1,31 +1,27 @@
 /**
- * Date utility functions for Thai Buddhist Era (B.E.) date formatting.
+ * Date utility functions for date formatting.
  * 
  * All dates stored as ISO 8601 strings.
- * All UI displays use Thai B.E. format (year + 543).
+ * All UI displays use dd/mm/yyyy format with ISO year.
  * 
  * @example
- * ISO: "2024-04-12" → Display: "12/04/2567"
+ * ISO: "2024-04-12" → Display: "12/04/2024"
  */
-const BE_OFFSET = 543;
 
 /**
- * Formats ISO date to Thai B.E. date.
+ * Formats ISO date to dd/mm/yyyy format.
  * @param isoDate - ISO date string (YYYY-MM-DD or full ISO 8601)
- * @returns Thai B.E. formatted string (DD/MM/BBBB)
+ * @returns Formatted string (DD/MM/YYYY)
  */
 export function formatThaiDate(isoDate: string): string {
-  const d = new Date(isoDate);
-  const day = d.getDate().toString().padStart(2, '0');
-  const month = (d.getMonth() + 1).toString().padStart(2, '0');
-  const beYear = d.getFullYear() + BE_OFFSET;
-  return `${day}/${month}/${beYear}`;
+  const [year, month, day] = isoDate.split('T')[0].split('-').map(Number);
+  return `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
 }
 
 /**
- * Formats ISO datetime to Thai B.E. date with time.
+ * Formats ISO datetime to date with time.
  * @param isoDate - Full ISO datetime string
- * @returns Thai B.E. formatted datetime string (DD/MM/BBBB HH:mm)
+ * @returns Formatted datetime string (DD/MM/YYYY HH:mm)
  */
 export function formatThaiDateTime(isoDate: string): string {
   const d = new Date(isoDate);

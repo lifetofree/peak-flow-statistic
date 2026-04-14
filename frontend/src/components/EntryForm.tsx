@@ -106,9 +106,9 @@ export default function EntryForm({ onSubmit, isLoading }: EntryFormProps) {
           <input
             type="date"
             value={date}
-            max={today}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            max={today}
+            className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 

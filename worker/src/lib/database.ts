@@ -185,4 +185,23 @@ export class DatabaseClient {
     const query = `DELETE FROM ${table} WHERE 1=1${where}`;
     await this.env.DB.prepare(query).bind(...bindings).run();
   }
+
+  async getLastEntryDatesForUsers(userIds: string[]): Promise<Map<string, string>> {
+    if (userIds.length === 0) {
+      return new Map();
+    }
+    const placeholders = userIds.map(() => '?').join(', ');
+    const query = `
+      SELECT user_id, MAX(date) as last_entry_date 
+      FROM entries 
+      WHERE user_id IN (${placeholders}) 
+      GROUP BY user_id
+    `;
+    const result = await this.env.DB.prepare(query).bind(...userIds).all();
+    const map = new Map<string, string>();
+    for (const row of result.results as { user_id: string; last_entry_date: string }[]) {
+      map.set(row.user_id, row.last_entry_date);
+    }
+    return map;
+  }
 }
