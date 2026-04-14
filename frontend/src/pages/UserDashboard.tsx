@@ -14,7 +14,6 @@ import ViewModeToggle from '../components/user/ViewModeToggle';
 import EntriesCardView from '../components/user/EntriesCardView';
 import EntriesListView from '../components/user/EntriesListView';
 import UserNoteModal from '../components/user/UserNoteModal';
-import DateFilter from '../components/DateFilter';
 
 export default function UserDashboard() {
   const { token } = useParams<{ token: string }>();
@@ -22,8 +21,6 @@ export default function UserDashboard() {
   const [viewMode, setViewMode] = useState<'card' | 'list'>('list');
   const [dayPage, setDayPage] = useState(1);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
   const daysPerPage = 20;
 
   const profileQuery = useQuery({
@@ -33,14 +30,8 @@ export default function UserDashboard() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['userEntries', token, fromDate, toDate],
-    queryFn: () => fetchUserEntries(
-      token!,
-      0,
-      fromDate || undefined,
-      toDate || undefined,
-      1
-    ),
+    queryKey: ['userEntries', token],
+    queryFn: () => fetchUserEntries(token!, 0, undefined, undefined, 1),
     enabled: !!token,
   });
 
@@ -51,12 +42,6 @@ export default function UserDashboard() {
 
   const handlePageChange = (page: number) => {
     setDayPage(page);
-  };
-
-  const handleClearDateFilter = () => {
-    setFromDate('');
-    setToDate('');
-    setDayPage(1);
   };
 
   if (profileQuery.isLoading) {
@@ -126,14 +111,6 @@ export default function UserDashboard() {
           </div>
         )}
       </div>
-
-      <DateFilter
-        fromDate={fromDate}
-        toDate={toDate}
-        onFromDateChange={(date) => { setFromDate(date); setDayPage(1); }}
-        onToDateChange={(date) => { setToDate(date); setDayPage(1); }}
-        onClear={handleClearDateFilter}
-      />
 
       {entriesQuery.isLoading ? (
         <div className="flex justify-center py-12">

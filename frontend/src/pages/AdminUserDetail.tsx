@@ -10,7 +10,6 @@ import UserShareLink from '../components/admin/UserShareLink';
 import UserAdminNote from '../components/admin/UserAdminNote';
 import UserEntriesTable from '../components/admin/UserEntriesTable';
 import NoteModal from '../components/admin/NoteModal';
-import DateFilter from '../components/DateFilter';
 
 export default function AdminUserDetail() {
   const { id } = useParams<{ id: string }>();
@@ -20,8 +19,6 @@ export default function AdminUserDetail() {
 
   const [dayPage, setDayPage] = useState(1);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
   const daysPerPage = 20;
 
   const userQuery = useQuery({
@@ -31,8 +28,8 @@ export default function AdminUserDetail() {
   });
 
   const entriesQuery = useQuery({
-    queryKey: ['adminEntries', id, fromDate, toDate],
-    queryFn: () => fetchAdminEntries(1, id, 0, fromDate || undefined, toDate || undefined),
+    queryKey: ['adminEntries', id],
+    queryFn: () => fetchAdminEntries(1, id, 0),
     enabled: Boolean(id),
   });
 
@@ -53,7 +50,7 @@ export default function AdminUserDetail() {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-      const exportUrl = getAdminExportUrl(id!, fromDate || undefined, toDate || undefined);
+      const exportUrl = getAdminExportUrl(id!);
       const res = await fetch(exportUrl, { headers });
       if (!res.ok) throw new Error('Export failed');
       const blob = await res.blob();
@@ -72,12 +69,6 @@ export default function AdminUserDetail() {
     if (confirm(t('common.confirm') + '?')) {
       deleteMutation.mutate();
     }
-  };
-
-  const handleClearDateFilter = () => {
-    setFromDate('');
-    setToDate('');
-    setDayPage(1);
   };
 
   if (userQuery.isLoading) {
@@ -153,14 +144,6 @@ export default function AdminUserDetail() {
         userId={user._id}
         adminNote={user.adminNote || ''}
         queryClient={queryClient}
-      />
-
-      <DateFilter
-        fromDate={fromDate}
-        toDate={toDate}
-        onFromDateChange={(date) => { setFromDate(date); setDayPage(1); }}
-        onToDateChange={(date) => { setToDate(date); setDayPage(1); }}
-        onClear={handleClearDateFilter}
       />
 
       {entriesQuery.isLoading ? (
