@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
-import { th } from 'date-fns/locale';
+import { th } from 'date-fns/locale/th';
 import { useTranslation } from 'react-i18next';
 
 interface BuddhistDatePickerProps {
