@@ -73,7 +73,7 @@ export default function EntriesListView({
 
       <div className="overflow-x-auto border rounded-xl bg-white">
         <table className="w-full text-xs">
-          <thead className="bg-gray-50 border-b">
+          <thead className="bg-gray-50 border-b"> 
             <tr>
               <th className="px-2 py-2 font-semibold text-gray-600 border-r border-gray-300" rowSpan={2}>
                 {t('entry.date')}
