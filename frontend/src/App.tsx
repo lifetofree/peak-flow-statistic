@@ -40,7 +40,7 @@ export default function App() {
       <DevModeBanner />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-          <Route path="/" element={<Navigate to="/admin" replace />} />
+          <Route path="/" element={<NotFound />} />
           <Route path="/u/:token" element={<UserDashboard />} />
           <Route path="/u/:token/new" element={<NewEntry />} />
           <Route path="/u/:token/entries" element={<EntryHistory />} />
