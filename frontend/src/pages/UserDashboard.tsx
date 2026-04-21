@@ -129,7 +129,7 @@ export default function UserDashboard() {
           />
         ) : (
           <div className="bg-white p-4 rounded-xl border border-blue-100 text-gray-400 italic">
-            {t('common.noData')} (instructionBox is empty: "{user.instructionBox}")
+            {t('common.noData')}
           </div>
         )}
       </div>
