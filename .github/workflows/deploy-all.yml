@@ -59,13 +59,14 @@ jobs:
       - name: Build
         run: |
           cd frontend
+          rm -rf dist
           npm run build
 
       - name: Install Wrangler
         run: npm install -g wrangler@latest
 
       - name: Deploy to Cloudflare Pages
-        run: wrangler pages deploy frontend/dist --project-name=peakflowstat --branch=main
+        run: wrangler pages deploy frontend/dist --project-name=peakflowstat --branch=main --skip-caching --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
