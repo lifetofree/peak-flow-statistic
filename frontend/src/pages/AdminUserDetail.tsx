@@ -8,6 +8,7 @@ import { groupEntriesByDateWithZone, convertGroupedToArrayWithZone, type Grouped
 import UserProfile from '../components/admin/UserProfile';
 import UserShareLink from '../components/admin/UserShareLink';
 import UserAdminNote from '../components/admin/UserAdminNote';
+import UserInstructionBox from '../components/admin/UserInstructionBox';
 import UserEntriesTable from '../components/admin/UserEntriesTable';
 import NoteModal from '../components/admin/NoteModal';
 
@@ -143,6 +144,12 @@ export default function AdminUserDetail() {
       <UserAdminNote
         userId={user._id}
         adminNote={user.adminNote || ''}
+        queryClient={queryClient}
+      />
+
+      <UserInstructionBox
+        userId={user._id}
+        instructionBox={user.instructionBox || ''}
         queryClient={queryClient}
       />
 

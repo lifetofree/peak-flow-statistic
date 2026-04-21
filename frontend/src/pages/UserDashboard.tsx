@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Activity, Plus, AlertCircle } from 'lucide-react';
+import { Activity, Plus, AlertCircle, Info } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import { fetchUserProfile, fetchUserEntries } from '../api/user';
 import { 
   groupEntriesByDateWithZone, 
@@ -65,6 +66,10 @@ export default function UserDashboard() {
   }
 
   const user = profileQuery.data!;
+  console.log('User profile in dashboard:', user);
+  console.log('InstructionBox value:', user.instructionBox);
+  console.log('InstructionBox is truthy?', !!user.instructionBox);
+  console.log('InstructionBox length:', user.instructionBox?.length);
   const entriesWithZone = entriesQuery.data?.entries ?? [];
   const allEntriesWithZone: EntryWithZone[] = entriesWithZone.map(item => ({
     ...item.entry,
@@ -108,6 +113,23 @@ export default function UserDashboard() {
           <div className="mt-4 flex items-center gap-2 text-sm text-orange-700 bg-orange-50 p-3 rounded-xl border border-orange-100">
             <AlertCircle size={18} />
             <p>{t('zone.noPersonalBest')}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-blue-50 rounded-2xl p-5 shadow-sm border-2 border-blue-200">
+        <h3 className="font-bold text-lg flex items-center gap-2 mb-3 text-blue-900">
+          <Info size={20} className="text-blue-600" />
+          {t('admin.instructionBox')}
+        </h3>
+        {user.instructionBox ? (
+          <div
+            className="prose prose-sm max-w-none bg-white p-4 rounded-xl border border-blue-100"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(user.instructionBox) }}
+          />
+        ) : (
+          <div className="bg-white p-4 rounded-xl border border-blue-100 text-gray-400 italic">
+            {t('common.noData')} (instructionBox is empty: "{user.instructionBox}")
           </div>
         )}
       </div>

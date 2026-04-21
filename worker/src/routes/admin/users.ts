@@ -26,6 +26,7 @@ const createUserSchema = z.object({
   nickname: z.string().min(1),
   personalBest: z.number().int().min(50).max(900).nullable().optional(),
   adminNote: z.string().optional(),
+  instructionBox: z.string().optional(),
 });
 
 const updateUserSchema = z.object({
@@ -37,6 +38,10 @@ const updateUserSchema = z.object({
 
 const adminNoteSchema = z.object({
   adminNote: z.string().max(5000),
+});
+
+const instructionBoxSchema = z.object({
+  instructionBox: z.string().max(5000),
 });
 
 usersApp.get('/admin/users', async (c) => {
@@ -109,6 +114,23 @@ usersApp.patch('/admin/users/:id/note', zValidator('json', adminNoteSchema), asy
   await db.updateOne('users', { id: userId }, { admin_note: adminNote, updated_at: now });
 
   await writeUpdateAudit(db, userId, 'User', before, { adminNote });
+
+  return c.json({ success: true });
+});
+
+usersApp.patch('/admin/users/:id/instruction', zValidator('json', instructionBoxSchema), async (c) => {
+  const db = new DatabaseClient(c.env);
+  const userId = c.req.param('id');
+  const { instructionBox } = c.req.valid('json');
+  const now = new Date().toISOString();
+
+  const user = await db.findOne<UserRecord>('users', { id: userId });
+  if (!user) return c.json({ error: 'Not found' }, 404);
+
+  const before = { instructionBox: user.instruction_box || '' };
+  await db.updateOne('users', { id: userId }, { instruction_box: instructionBox, updated_at: now });
+
+  await writeUpdateAudit(db, userId, 'User', before, { instructionBox });
 
   return c.json({ success: true });
 });

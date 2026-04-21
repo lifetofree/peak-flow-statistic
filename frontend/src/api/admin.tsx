@@ -60,6 +60,13 @@ export function updateNote(id: string, adminNote: string): Promise<User> {
   });
 }
 
+export function updateInstruction(id: string, instructionBox: string): Promise<User> {
+  return adminFetch(`/admin/users/${id}/instruction`, {
+    method: 'PATCH',
+    body: JSON.stringify({ instructionBox }),
+  });
+}
+
 export function rotateToken(id: string): Promise<{ shortToken: string }> {
   return adminFetch(`/admin/users/${id}/rotate-token`, { method: 'POST' });
 }

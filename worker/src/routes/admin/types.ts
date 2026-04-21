@@ -28,6 +28,7 @@ export interface UserRecord extends DatabaseRecord {
   click_count: number;
   personal_best: number | null;
   admin_note: string;
+  instruction_box: string;
   deleted_at: string | null;
 }
 
@@ -72,6 +73,7 @@ export interface FormattedUser {
   clickCount: number;
   personalBest: number | null;
   adminNote: string;
+  instructionBox: string;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;

@@ -8,6 +8,7 @@ export interface User {
   clickCount: number;
   personalBest: number | null;
   adminNote: string;
+  instructionBox: string;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -20,6 +21,7 @@ export interface UserProfile {
   lastName: string;
   nickname: string;
   personalBest: number | null;
+  instructionBox: string;
 }
 
 export interface Entry {
