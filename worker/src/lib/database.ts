@@ -30,7 +30,7 @@ const ALLOWED_COLUMNS = [
   'user_id', 'date', 'peak_flow_readings', 'peak_flow', 'spo2',
   'medication_timing', 'period', 'note',
   'admin_id', 'target_id', 'target_model', 'action', 'diff', 'timestamp',
-  'last_entry_date',
+  'last_entry_date', 'instruction_box',
 ] as const;
 
 /**

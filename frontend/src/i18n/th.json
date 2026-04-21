@@ -62,6 +62,8 @@
     "export": "ส่งออก CSV",
     "personalBest": "ค่า Personal Base",
     "adminNote": "บันทึกของแอดมิน",
+    "instructionBox": "คำแนะนำสำหรับผู้ป่วย",
+    "instructionPlaceholder": "เขียนคำแนะนำ...",
     "firstName": "ชื่อ",
     "lastName": "นามสกุล",
     "nickname": "ชื่อเล่น",
@@ -95,7 +97,7 @@
     "fromDate": "จากวันที่",
     "toDate": "ถึงวันที่",
     "clearFilter": "ล้างตัวกรอง",
-    "devMode": "โหมดพัฒนา (Dev Mode)",
+    "devMode": "Development Mode",
     "selectDate": "เลือกวันที่"
   },
   "chart": {

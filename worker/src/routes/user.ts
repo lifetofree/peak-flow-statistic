@@ -56,6 +56,7 @@ app.get('/u/:token', validateShortLink, async (c) => {
     lastName: user.last_name,
     nickname: user.nickname,
     personalBest: user.personal_best,
+    instructionBox: user.instruction_box || '',
   });
 });
 

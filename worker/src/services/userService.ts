@@ -6,6 +6,7 @@ export interface CreateUserData {
   nickname: string;
   personalBest?: number | null;
   adminNote?: string;
+  instructionBox?: string;
 }
 
 export interface UpdateUserData {
@@ -38,6 +39,7 @@ export function buildUserData(data: CreateUserData, now: string): UserRecord {
     click_count: 0,
     personal_best: data.personalBest || null,
     admin_note: data.adminNote || '',
+    instruction_box: data.instructionBox || '',
     deleted_at: null,
     created_at: now,
     updated_at: now,
@@ -55,6 +57,7 @@ export function formatUser(user: UserRecord, lastEntryDate?: string | null): For
     clickCount: user.click_count || 0,
     personalBest: user.personal_best,
     adminNote: user.admin_note || '',
+    instructionBox: user.instruction_box || '',
     deletedAt: user.deleted_at,
     createdAt: user.created_at,
     updatedAt: user.updated_at,

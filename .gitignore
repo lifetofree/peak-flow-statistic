@@ -57,3 +57,13 @@ yarn-error.log*
 Thumbs.db
 worker-configuration.d.ts
 tsconfig.tsbuildinfo
+
+.claude/
+
+.kilo/
+
+*.development
+
+frontend/src/__tests__/
+
+worker/src/__tests__/
