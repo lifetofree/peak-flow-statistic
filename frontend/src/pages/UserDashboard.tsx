@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Activity, Plus, AlertCircle, Info } from 'lucide-react';
+import { Activity, Plus, AlertCircle, Info, MessageSquare, Save } from 'lucide-react';
 import DOMPurify from 'dompurify';
-import { fetchUserProfile, fetchUserEntries } from '../api/user';
+import { fetchUserProfile, fetchUserEntries, updateUserProfile } from '../api/user';
 import { 
   groupEntriesByDateWithZone, 
   convertGroupedToArrayWithZone, 
@@ -15,13 +15,17 @@ import ViewModeToggle from '../components/user/ViewModeToggle';
 import EntriesCardView from '../components/user/EntriesCardView';
 import EntriesListView from '../components/user/EntriesListView';
 import UserNoteModal from '../components/user/UserNoteModal';
+import RichTextEditor from '../components/RichTextEditor';
 
 export default function UserDashboard() {
   const { token } = useParams<{ token: string }>();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'card' | 'list'>('list');
   const [dayPage, setDayPage] = useState(1);
   const [viewingNote, setViewingNote] = useState<{ note: string; date: string } | null>(null);
+  const [userNote, setUserNote] = useState('');
+  const [isEditingNote, setIsEditingNote] = useState(false);
   const daysPerPage = 20;
 
   const profileQuery = useQuery({
@@ -36,6 +40,20 @@ export default function UserDashboard() {
     enabled: !!token,
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (note: string) => updateUserProfile(token!, { userNote: note }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile', token] });
+      setIsEditingNote(false);
+    },
+  });
+
+  useEffect(() => {
+    if (profileQuery.data) {
+      setUserNote(profileQuery.data.userNote || '');
+    }
+  }, [profileQuery.data]);
+
   const handleViewModeChange = (mode: 'card' | 'list') => {
     setViewMode(mode);
     setDayPage(1);
@@ -43,6 +61,10 @@ export default function UserDashboard() {
 
   const handlePageChange = (page: number) => {
     setDayPage(page);
+  };
+
+  const handleSaveNote = () => {
+    updateMutation.mutate(userNote);
   };
 
   if (profileQuery.isLoading) {
@@ -66,21 +88,14 @@ export default function UserDashboard() {
   }
 
   const user = profileQuery.data!;
-  console.log('User profile in dashboard:', user);
-  console.log('InstructionBox value:', user.instructionBox);
-  console.log('InstructionBox is truthy?', !!user.instructionBox);
-  console.log('InstructionBox length:', user.instructionBox?.length);
   const entriesWithZone = entriesQuery.data?.entries ?? [];
   const allEntriesWithZone: EntryWithZone[] = entriesWithZone.map(item => ({
     ...item.entry,
     zone: item.zone ?? undefined,
   })).filter(Boolean);
   const groupedEntriesWithZone = groupEntriesByDateWithZone(allEntriesWithZone);
-  const entriesByDate = convertGroupedToArrayWithZone(groupedEntriesWithZone);
-
   const sortedDates = Object.keys(groupedEntriesWithZone).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
   const totalDays = sortedDates.length;
-  const totalPages = Math.ceil(totalDays / daysPerPage);
   
   const startIndex = (dayPage - 1) * daysPerPage;
   const endIndex = startIndex + daysPerPage;
@@ -129,6 +144,58 @@ export default function UserDashboard() {
           />
         ) : (
           <div className="bg-white p-4 rounded-xl border border-blue-100 text-gray-400 italic">
+            {t('common.noData')}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-purple-50 rounded-2xl p-5 shadow-sm border-2 border-purple-200">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-bold text-lg flex items-center gap-2 text-purple-900">
+            <MessageSquare size={20} className="text-purple-600" />
+            {t('entry.noteToDoctor')}
+          </h3>
+          <div className="flex items-center gap-2">
+            {updateMutation.isError && (
+              <span className="text-xs text-red-600 font-medium">
+                {t('common.error')}
+              </span>
+            )}
+            {!isEditingNote ? (
+              <button
+                onClick={() => setIsEditingNote(true)}
+                className="text-sm font-bold text-purple-700 hover:text-purple-800 bg-white px-3 py-1 rounded-lg border border-purple-200 shadow-sm transition-all"
+              >
+                {t('common.edit')}
+              </button>
+            ) : (
+              <button
+                onClick={handleSaveNote}
+                disabled={updateMutation.isPending}
+                className="text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded-lg shadow-md transition-all flex items-center gap-1 disabled:opacity-50"
+              >
+                <Save size={14} />
+                {updateMutation.isPending ? t('common.loading') : t('common.save')}
+              </button>
+            )}
+          </div>
+        </div>
+        {isEditingNote ? (
+          <div className="space-y-3">
+            <RichTextEditor
+              value={userNote}
+              onChange={setUserNote}
+              placeholder={t('entry.notePlaceholder')}
+              minHeight="120px"
+            />
+          </div>
+        ) : user.userNote ? (
+          <div
+            className="prose prose-sm max-w-none bg-white p-4 rounded-xl border border-purple-100"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(user.userNote) }}
+          />
+        ) : (
+          <div className="bg-white p-4 rounded-xl border border-purple-100 text-gray-400 italic">
             {t('common.noData')}
           </div>
         )}

@@ -9,10 +9,15 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+  },
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8787',
+        target: 'http://localhost:8788',
         changeOrigin: true,
         bypass: (req) => {
           // Don't proxy Vite's internal paths
@@ -22,7 +27,7 @@ export default defineConfig({
         },
       },
       '/s/': {
-        target: 'http://localhost:8787',
+        target: 'http://localhost:8788',
         changeOrigin: true,
       },
     },

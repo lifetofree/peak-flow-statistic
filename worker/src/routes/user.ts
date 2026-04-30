@@ -57,7 +57,33 @@ app.get('/u/:token', validateShortLink, async (c) => {
     nickname: user.nickname,
     personalBest: user.personal_best,
     instructionBox: user.instruction_box || '',
+    userNote: user.user_note || '',
   });
+});
+
+const updateProfileSchema = z.object({
+  userNote: z.string().optional(),
+});
+
+app.patch('/u/:token', validateShortLink, zValidator('json', updateProfileSchema), async (c) => {
+  try {
+    const db = new DatabaseClient(c.env);
+    const user = c.get('user');
+    const data = c.req.valid('json');
+    const now = new Date().toISOString();
+
+    if (!user) return c.json({ error: 'User not found' }, 404);
+
+    await db.updateOne('users', { id: user.id }, { 
+      user_note: data.userNote || '',
+      updated_at: now 
+    });
+
+    return c.json({ success: true });
+  } catch (err: any) {
+    console.error('Error updating user note:', err);
+    return c.json({ error: err.message || 'Internal server error' }, 500);
+  }
 });
 
 app.get('/u/:token/entries', validateShortLink, async (c) => {
@@ -78,7 +104,7 @@ app.get('/u/:token/entries', validateShortLink, async (c) => {
 const createEntrySchema = z.object({
   date: z.string(),
   peakFlowReadings: z.tuple([z.number(), z.number(), z.number()]),
-  spO2: z.number().int().min(70).max(100),
+  spO2: z.number().int().min(0).max(100),
   medicationTiming: z.enum(['before', 'after']),
   period: z.enum(['morning', 'evening']),
   note: z.string().optional(),

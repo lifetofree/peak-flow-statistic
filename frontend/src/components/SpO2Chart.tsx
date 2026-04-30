@@ -19,10 +19,13 @@ interface SpO2ChartProps {
 export default function SpO2Chart({ entries }: SpO2ChartProps) {
   const { t } = useTranslation();
 
-  const data = [...entries].reverse().map((e) => ({
-    date: formatThaiDate(e.entry.date),
-    value: e.entry.spO2,
-  }));
+  const data = [...entries]
+    .reverse()
+    .filter((e) => e.entry.spO2 && e.entry.spO2 > 0)
+    .map((e) => ({
+      date: formatThaiDate(e.entry.date),
+      value: e.entry.spO2,
+    }));
 
   return (
     <div className="bg-white rounded-lg p-4 shadow-sm">

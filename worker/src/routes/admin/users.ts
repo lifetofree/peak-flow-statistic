@@ -44,6 +44,47 @@ const instructionBoxSchema = z.object({
   instructionBox: z.string().max(5000),
 });
 
+const userNoteSchema = z.object({
+  userNote: z.string().max(5000),
+});
+
+usersApp.patch('/admin/users/:id/user-note', zValidator('json', userNoteSchema), async (c) => {
+  const db = new DatabaseClient(c.env);
+  const userId = c.req.param('id');
+  const { userNote } = c.req.valid('json');
+  const now = new Date().toISOString();
+
+  const user = await db.findOne<UserRecord>('users', { id: userId });
+  if (!user) return c.json({ error: 'Not found' }, 404);
+
+  const before = { userNote: user.user_note || '' };
+  await db.updateOne('users', { id: userId }, { user_note: userNote, updated_at: now });
+
+  await writeUpdateAudit(db, userId, 'User', before, { userNote });
+
+  const updatedUser = await db.findOne<UserRecord>('users', { id: userId });
+  if (!updatedUser) return c.json({ error: 'Failed to fetch updated user' }, 500);
+
+  const formattedUser: FormattedUser = {
+    _id: updatedUser.id,
+    firstName: updatedUser.first_name,
+    lastName: updatedUser.last_name,
+    nickname: updatedUser.nickname,
+    shortToken: updatedUser.short_token,
+    shortCode: updatedUser.short_code,
+    clickCount: updatedUser.click_count || 0,
+    personalBest: updatedUser.personal_best,
+    adminNote: updatedUser.admin_note || '',
+    instructionBox: updatedUser.instruction_box || '',
+    userNote: updatedUser.user_note || '',
+    deletedAt: updatedUser.deleted_at,
+    createdAt: updatedUser.created_at,
+    updatedAt: updatedUser.updated_at,
+  };
+
+  return c.json(formattedUser);
+});
+
 usersApp.get('/admin/users', async (c) => {
   const db = new DatabaseClient(c.env);
   const page = parseInt(c.req.query('page') || '1');
@@ -115,7 +156,27 @@ usersApp.patch('/admin/users/:id/note', zValidator('json', adminNoteSchema), asy
 
   await writeUpdateAudit(db, userId, 'User', before, { adminNote });
 
-  return c.json({ success: true });
+  const updatedUser = await db.findOne<UserRecord>('users', { id: userId });
+  if (!updatedUser) return c.json({ error: 'Failed to fetch updated user' }, 500);
+
+  const formattedUser: FormattedUser = {
+    _id: updatedUser.id,
+    firstName: updatedUser.first_name,
+    lastName: updatedUser.last_name,
+    nickname: updatedUser.nickname,
+    shortToken: updatedUser.short_token,
+    shortCode: updatedUser.short_code,
+    clickCount: updatedUser.click_count || 0,
+    personalBest: updatedUser.personal_best,
+    adminNote: updatedUser.admin_note || '',
+    instructionBox: updatedUser.instruction_box || '',
+    userNote: updatedUser.user_note || '',
+    deletedAt: updatedUser.deleted_at,
+    createdAt: updatedUser.created_at,
+    updatedAt: updatedUser.updated_at,
+  };
+
+  return c.json(formattedUser);
 });
 
 usersApp.patch('/admin/users/:id/instruction', zValidator('json', instructionBoxSchema), async (c) => {
@@ -132,7 +193,27 @@ usersApp.patch('/admin/users/:id/instruction', zValidator('json', instructionBox
 
   await writeUpdateAudit(db, userId, 'User', before, { instructionBox });
 
-  return c.json({ success: true });
+  const updatedUser = await db.findOne<UserRecord>('users', { id: userId });
+  if (!updatedUser) return c.json({ error: 'Failed to fetch updated user' }, 500);
+
+  const formattedUser: FormattedUser = {
+    _id: updatedUser.id,
+    firstName: updatedUser.first_name,
+    lastName: updatedUser.last_name,
+    nickname: updatedUser.nickname,
+    shortToken: updatedUser.short_token,
+    shortCode: updatedUser.short_code,
+    clickCount: updatedUser.click_count || 0,
+    personalBest: updatedUser.personal_best,
+    adminNote: updatedUser.admin_note || '',
+    instructionBox: updatedUser.instruction_box || '',
+    userNote: updatedUser.user_note || '',
+    deletedAt: updatedUser.deleted_at,
+    createdAt: updatedUser.created_at,
+    updatedAt: updatedUser.updated_at,
+  };
+
+  return c.json(formattedUser);
 });
 
 usersApp.get('/admin/users/:id/export', async (c) => {

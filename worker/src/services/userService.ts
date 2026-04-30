@@ -7,6 +7,7 @@ export interface CreateUserData {
   personalBest?: number | null;
   adminNote?: string;
   instructionBox?: string;
+  userNote?: string;
 }
 
 export interface UpdateUserData {
@@ -14,6 +15,8 @@ export interface UpdateUserData {
   lastName?: string;
   nickname?: string;
   personalBest?: number | null;
+  instructionBox?: string;
+  userNote?: string;
 }
 
 export function generateShortToken(): string {
@@ -40,11 +43,12 @@ export function buildUserData(data: CreateUserData, now: string): UserRecord {
     personal_best: data.personalBest || null,
     admin_note: data.adminNote || '',
     instruction_box: data.instructionBox || '',
+    user_note: data.userNote || '',
     deleted_at: null,
     created_at: now,
     updated_at: now,
   };
-}
+  }
 
 export function formatUser(user: UserRecord, lastEntryDate?: string | null): FormattedUser {
   return {
@@ -58,6 +62,7 @@ export function formatUser(user: UserRecord, lastEntryDate?: string | null): For
     personalBest: user.personal_best,
     adminNote: user.admin_note || '',
     instructionBox: user.instruction_box || '',
+    userNote: user.user_note || '',
     deletedAt: user.deleted_at,
     createdAt: user.created_at,
     updatedAt: user.updated_at,
@@ -72,6 +77,8 @@ export function buildUserUpdates(data: UpdateUserData, now: string) {
   if (data.lastName !== undefined) updates.last_name = data.lastName;
   if (data.nickname !== undefined) updates.nickname = data.nickname;
   if (data.personalBest !== undefined) updates.personal_best = data.personalBest;
+  if (data.instructionBox !== undefined) updates.instruction_box = data.instructionBox;
+  if (data.userNote !== undefined) updates.user_note = data.userNote;
 
   return updates;
 }

@@ -25,6 +25,9 @@ frontend/.wrangler/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+# Database backups (sensitive patient data)
+backups/
 *.sql
 
 # Environment files (local development)

@@ -5,6 +5,16 @@ export function fetchUserProfile(token: string): Promise<UserProfile> {
   return apiFetch<UserProfile>(`/u/${token}`);
 }
 
+export function updateUserProfile(
+  token: string,
+  data: { userNote?: string }
+): Promise<{ success: true }> {
+  return apiFetch(`/u/${token}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
 export function fetchUserEntries(
   token: string,
   pageSize?: number,

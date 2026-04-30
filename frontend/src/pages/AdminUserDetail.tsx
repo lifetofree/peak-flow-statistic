@@ -9,6 +9,7 @@ import UserProfile from '../components/admin/UserProfile';
 import UserShareLink from '../components/admin/UserShareLink';
 import UserAdminNote from '../components/admin/UserAdminNote';
 import UserInstructionBox from '../components/admin/UserInstructionBox';
+import UserPatientNote from '../components/admin/UserPatientNote';
 import UserEntriesTable from '../components/admin/UserEntriesTable';
 import NoteModal from '../components/admin/NoteModal';
 
@@ -105,7 +106,6 @@ export default function AdminUserDetail() {
   const groupedEntriesWithZone = groupEntriesByDateWithZone(allEntriesWithZone);
   const sortedDates = Object.keys(groupedEntriesWithZone).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
   const totalDays = sortedDates.length;
-  const totalPages = Math.ceil(totalDays / daysPerPage);
   
   const startIndex = (dayPage - 1) * daysPerPage;
   const endIndex = startIndex + daysPerPage;
@@ -150,6 +150,12 @@ export default function AdminUserDetail() {
       <UserInstructionBox
         userId={user._id}
         instructionBox={user.instructionBox || ''}
+        queryClient={queryClient}
+      />
+
+      <UserPatientNote
+        userId={user._id}
+        userNote={user.userNote || ''}
         queryClient={queryClient}
       />
 
