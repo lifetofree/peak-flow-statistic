@@ -39,7 +39,7 @@ export default function EntriesListView({
   };
 
   const renderSpO2Cell = (entry: EntryWithZone | null) => {
-    if (!entry) return <span className="text-gray-300">-</span>;
+    if (!entry || !entry.spO2 || entry.spO2 === 0) return <span className="text-gray-300">-</span>;
     return (
       <span className={`px-1 py-0.5 rounded text-xs font-bold ${
         entry.spO2 >= 95 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'

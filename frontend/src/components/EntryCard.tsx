@@ -52,9 +52,13 @@ export default function EntryCard({ data }: { data: EntryWithZone }) {
         </div>
         <div>
           <span className="text-gray-500">{t('entry.spO2')}: </span>
-          <span className={`font-semibold ${entry.spO2 < 95 ? 'text-red-600' : ''}`}>
-            {entry.spO2}%
-          </span>
+          {entry.spO2 > 0 ? (
+            <span className={`font-semibold ${entry.spO2 < 95 ? 'text-red-600' : ''}`}>
+              {entry.spO2}%
+            </span>
+          ) : (
+            <span className="text-gray-400">-</span>
+          )}
         </div>
         <div>
           <span className="text-gray-500">{t('entry.medicationTiming')}: </span>

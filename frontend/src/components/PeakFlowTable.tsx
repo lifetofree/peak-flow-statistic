@@ -49,7 +49,7 @@ export default function PeakFlowTable({ entries }: Props) {
   };
 
   const renderSpO2 = (entry: Entry | undefined) => {
-    if (!entry || entry.spO2 == null) return null;
+    if (!entry || entry.spO2 == null || entry.spO2 === 0) return <span className="text-gray-300">-</span>;
     return (
       <span
         className={`px-1 py-0.5 rounded text-xs font-bold ${

@@ -60,6 +60,13 @@ export function updateNote(id: string, adminNote: string): Promise<User> {
   });
 }
 
+export function updateUserNote(id: string, userNote: string): Promise<User> {
+  return adminFetch(`/admin/users/${id}/user-note`, {
+    method: 'PATCH',
+    body: JSON.stringify({ userNote }),
+  });
+}
+
 export function updateInstruction(id: string, instructionBox: string): Promise<User> {
   return adminFetch(`/admin/users/${id}/instruction`, {
     method: 'PATCH',

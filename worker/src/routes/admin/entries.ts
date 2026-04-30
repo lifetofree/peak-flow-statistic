@@ -16,7 +16,7 @@ const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 const updateEntrySchema = z.object({
   date: z.string().optional(),
   peakFlowReadings: z.tuple([z.number(), z.number(), z.number()]).optional(),
-  spO2: z.number().int().min(70).max(100).optional(),
+  spO2: z.number().int().min(0).max(100).optional(),
   medicationTiming: z.enum(['before', 'after']).optional(),
   period: z.enum(['morning', 'evening']).optional(),
   note: z.string().optional(),

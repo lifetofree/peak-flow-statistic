@@ -29,6 +29,8 @@
     "morning": "เช้า",
     "evening": "เย็น",
     "note": "บันทึก",
+    "noteToDoctor": "บันทึกถึงแพทย์",
+    "noteFromPatient": "บันทึกจากผู้ป่วย",
     "submit": "บันทึกข้อมูล",
     "noEntries": "ยังไม่มีข้อมูล",
     "showMore": "ดูเพิ่มเติม",

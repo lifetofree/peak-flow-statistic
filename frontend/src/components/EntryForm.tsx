@@ -7,7 +7,7 @@
  * Validation rules:
  * - Date cannot be in the future
  * - Peak flow readings: 50-900 L/min
- * - SpO2: 70-100%
+ * - SpO2: 70-100% (Optional, defaults to 0)
  * 
  * Uses toggle buttons (gray background) for period and medication timing.
  * SpO2 and medication timing are on the same row for mobile layout.
@@ -66,9 +66,11 @@ export default function EntryForm({ onSubmit, isLoading }: EntryFormProps) {
       }
     }
 
-    const s = Number(spO2);
-    if (!spO2 || isNaN(s) || s < SPO2_MIN || s > SPO2_MAX) {
-      errs.push(t('validation.spO2Range'));
+    if (spO2) {
+      const s = Number(spO2);
+      if (isNaN(s) || s < SPO2_MIN || s > SPO2_MAX || !Number.isInteger(s)) {
+        errs.push(t('validation.spO2Range'));
+      }
     }
 
     setErrors(errs);
@@ -82,7 +84,7 @@ export default function EntryForm({ onSubmit, isLoading }: EntryFormProps) {
     onSubmit({
       date,
       peakFlowReadings: readings.map(Number) as [number, number, number],
-      spO2: Number(spO2),
+      spO2: spO2 ? Number(spO2) : 0,
       medicationTiming,
       period,
       note,
@@ -168,6 +170,7 @@ export default function EntryForm({ onSubmit, isLoading }: EntryFormProps) {
             value={spO2}
             min={SPO2_MIN}
             max={SPO2_MAX}
+            step="1"
             onChange={(e) => setSpO2(e.target.value)}
             className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />

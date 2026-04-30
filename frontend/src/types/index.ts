@@ -9,6 +9,7 @@ export interface User {
   personalBest: number | null;
   adminNote: string;
   instructionBox: string;
+  userNote: string;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -22,6 +23,7 @@ export interface UserProfile {
   nickname: string;
   personalBest: number | null;
   instructionBox: string;
+  userNote: string;
 }
 
 export interface Entry {

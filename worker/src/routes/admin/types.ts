@@ -29,6 +29,7 @@ export interface UserRecord extends DatabaseRecord {
   personal_best: number | null;
   admin_note: string;
   instruction_box: string;
+  user_note: string;
   deleted_at: string | null;
 }
 
@@ -74,6 +75,7 @@ export interface FormattedUser {
   personalBest: number | null;
   adminNote: string;
   instructionBox: string;
+  userNote: string;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
